@@ -6,7 +6,8 @@ from .base import LayerBase
 
 class FullyConnectedLayer(LayerBase):
 
-    def __init__(self, size, next_size, activation_func, level, bias=True):
+    def __init__(self, size, next_size, activation_func, level,
+                 bias=True, sigma=1.0):
         self.level = level
         self.size = size
         self.next_size = next_size
@@ -16,13 +17,13 @@ class FullyConnectedLayer(LayerBase):
         self.z = None
         self.delta = None
         self.weights_derivative = None
-        self._init_weights()
+        self._init_weights(sigma)
 
-    def _init_weights(self):
+    def _init_weights(self, sigma):
         if self.bias:
-            self.weights = np.random.randn(self.size+1, self.next_size)
+            self.weights = sigma * np.random.randn(self.size+1, self.next_size)
         else:
-            self.weights = np.random.randn(self.size, self.next_size)
+            self.weights = sigma * np.random.randn(self.size, self.next_size)
 
     def forward_p(self, z):
         if self.bias:
