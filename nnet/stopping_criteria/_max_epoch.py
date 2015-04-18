@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from .base import StoppingCriteriaBase
+from ._base import StoppingCriteriaBase
 
 class MaxEpoch(StoppingCriteriaBase):
 

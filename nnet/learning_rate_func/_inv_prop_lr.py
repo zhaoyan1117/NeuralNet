@@ -1,6 +1,6 @@
 from __future__ import absolute_import, division
 
-from .base import LearningRateFuncBase
+from ._base import LearningRateFuncBase
 
 class InvPropLR(LearningRateFuncBase):
 

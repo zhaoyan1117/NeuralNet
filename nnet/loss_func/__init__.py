@@ -1,2 +1,2 @@
-from .mean_squared_error import MeanSquaredError
-from .cross_entropy_error import CrossEntropyError
+from ._mean_squared_error import MeanSquaredError
+from ._cross_entropy_error import CrossEntropyError

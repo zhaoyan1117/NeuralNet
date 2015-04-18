@@ -1,6 +1,6 @@
 from __future__ import absolute_import, division
 
-from .base import LayerBase
+from ._base import LayerBase
 
 class OutputLayer(LayerBase):
 

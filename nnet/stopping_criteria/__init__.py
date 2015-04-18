@@ -1,1 +1,1 @@
-from .max_epoch import MaxEpoch
+from ._max_epoch import MaxEpoch

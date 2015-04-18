@@ -2,7 +2,7 @@ from __future__ import absolute_import, division
 
 import numpy as np
 
-from .base import LossFuncBase
+from ._base import LossFuncBase
 
 class CrossEntropyError(LossFuncBase):
 

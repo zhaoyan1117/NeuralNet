@@ -2,7 +2,7 @@ from __future__ import absolute_import, division
 
 import numpy as np
 
-from .base import LayerBase
+from ._base import LayerBase
 
 class FullyConnectedLayer(LayerBase):
 
