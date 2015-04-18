@@ -60,10 +60,10 @@ class FullyConnectedLayer(LayerBase):
                 perturb[i][j] = epsilon
 
                 self.weights = current_weights - perturb
-                loss1 = net.compute_loss()
+                loss1 = net.compute_all_loss()
 
                 self.weights = current_weights + perturb
-                loss2 = net.compute_loss()
+                loss2 = net.compute_all_loss()
 
                 num_grad[i][j] = (loss2 - loss1) / (2*epsilon)
 

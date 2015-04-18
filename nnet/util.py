@@ -13,3 +13,8 @@ def devectorize_labels(vectorized):
     for i in xrange(len(vectorized)):
         devectorized[i] = np.argmax(vectorized[i])
     return devectorized
+
+def shuffle_data_labels(data, labels):
+    assert len(data) == len(labels)
+    indices = np.random.permutation(len(data))
+    return data[indices], labels[indices]
