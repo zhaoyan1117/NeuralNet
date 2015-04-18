@@ -1,8 +1,8 @@
 from __future__ import absolute_import, division
 
-from .base import LayerBase
-
 import numpy as np
+
+from .base import LayerBase
 
 class FullyConnectedLayer(LayerBase):
 
