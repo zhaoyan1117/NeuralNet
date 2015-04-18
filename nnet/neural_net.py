@@ -3,7 +3,7 @@ from __future__ import absolute_import
 import numpy as np
 
 from .neural_net_exception import NeuralNetException
-from .util import *
+from .util import vectorize_labels, devectorize_labels, shuffle_data_labels
 
 class NeuralNet(object):
 
@@ -69,10 +69,13 @@ class NeuralNet(object):
                     shuffle_data_labels(data, vectorize_labels(labels))
 
     def predict(self, data):
-        pass
+        vectorized = self._forward_p(data)
+        return devectorize_labels(vectorized)
 
     def score(self, data, labels):
-        pass
+        predictions = self.predict(data)
+        correct = predictions == labels
+        return np.count_nonzero(correct) / float(len(labels))
 
     def _forward_p(self, data):
         cur_z = data
