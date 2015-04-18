@@ -5,6 +5,14 @@ from abc import ABCMeta, abstractmethod
 class LayerBase(object):
     __metaclass__ = ABCMeta
 
-    @absolute_import
-    def forward(self, z):
+    @abstractmethod
+    def forward_p(self, z):
+        pass
+
+    @abstractmethod
+    def backward_p(self, next_delta):
+        pass
+
+    @abstractmethod
+    def update(self, epoch):
         pass
