@@ -4,8 +4,8 @@ from .base import LearningRateFuncBase
 
 class ConstantLR(LearningRateFuncBase):
 
-    def __init__(self, init_rate):
-        self.init_rate = init_rate
+    def __init__(self, eta_0):
+        self.eta_0 = eta_0
 
     def apply(self, epoch):
-        return self.init_rate
+        return self.eta_0
