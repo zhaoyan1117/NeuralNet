@@ -2,7 +2,7 @@ from __future__ import absolute_import, division
 
 import numpy as np
 
-from .activation_func_base import ActivationFuncBase
+from .base import ActivationFuncBase
 
 
 class Tanh(ActivationFuncBase):
