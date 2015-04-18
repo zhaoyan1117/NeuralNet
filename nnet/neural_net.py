@@ -15,34 +15,34 @@ class NeuralNet(object):
     def train(self, data, labels):
         pass
 
-    def forward_p(self, data):
+    def _forward_p(self, data):
         cur_z = data
         for l in self.layers:
             cur_z = l.forward_p(cur_z)
         return cur_z
 
-    def backward_p(self, delta):
+    def _backward_p(self, delta):
         cur_delta = delta
         for l in reversed(self.layers):
             cur_delta = l.backward_p(cur_delta)
 
-    def update(self, lr):
+    def _update(self, lr):
         for l in self.layers:
             l.update(lr)
 
-    def numerical_check(self):
+    def _numerical_check(self):
         for l in self.layers:
             passed = l.numerical_check(self)
             if not passed:
                 print "WARNING: layer {0} " \
                       "failed numerical check.".format(l.level)
 
-    def compute_loss(self, labels, predictions):
+    def _compute_loss(self, labels, predictions):
         return self.loss_func.apply(labels, predictions)
 
     def compute_all_loss(self):
         if self.data is None:
             raise NeuralNetException('Cannot compute loss without data.')
 
-        return self.compute_loss(self.labels,
-                                 self.forward_p(self.data))
+        return self._compute_loss(self.labels,
+                                  self._forward_p(self.data))
