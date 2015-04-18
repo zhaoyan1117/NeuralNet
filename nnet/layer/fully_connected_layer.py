@@ -48,3 +48,29 @@ class FullyConnectedLayer(LayerBase):
 
     def update(self, lr):
         self.weights = self.weights - lr * self.weights_derivative
+
+    def numerical_check(self, net):
+        epsilon = 1e-5
+        current_weights = self.weights
+        num_grad = np.zeros(self.weights.shape)
+        perturb = np.zeros(self.weights.shape)
+
+        for i in xrange(len(current_weights)):
+            for j in xrange(len(current_weights[i])):
+                perturb[i][j] = epsilon
+
+                self.weights = current_weights - perturb
+                loss1 = net.compute_loss()
+
+                self.weights = current_weights + perturb
+                loss2 = net.compute_loss()
+
+                num_grad[i][j] = (loss2 - loss1) / (2*epsilon)
+
+                perturb[i][j] = 0.0
+
+        self.weights = current_weights
+
+        diff = (self.weights_derivative - num_grad).ravel()
+
+        return np.linalg.norm(diff) < 1e-8

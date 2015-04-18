@@ -23,3 +23,7 @@ class OutputLayer(LayerBase):
     def update(self, lr):
         # No weights to update for output layer.
         return None
+
+    def numerical_check(self, net):
+        # Output layer does not have weights to check.
+        return True
