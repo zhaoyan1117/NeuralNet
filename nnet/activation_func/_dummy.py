@@ -1,8 +1,6 @@
 from __future__ import absolute_import, division
 
-import numpy as np
-
-from .base import ActivationFuncBase
+from ._base import ActivationFuncBase
 from ..neural_net_exception import NeuralNetException
 
 class Dummy(ActivationFuncBase):
