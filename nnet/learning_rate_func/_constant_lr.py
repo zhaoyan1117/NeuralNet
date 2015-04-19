@@ -7,5 +7,5 @@ class ConstantLR(LearningRateFuncBase):
     def __init__(self, eta_0):
         self.eta_0 = eta_0
 
-    def apply(self, epoch):
+    def apply(self, t):
         return self.eta_0

@@ -17,19 +17,20 @@ class NeuralNet(object):
 
         self.data, self.labels = None, None
 
-        self.loss_period = kwargs.get('loss_period', 200)
+        self.status_period = kwargs.get('status_period', 1000)
         self.check_period = kwargs.get('check_period')
-        self.status_period = kwargs.get('status_period', 500)
 
     def train(self, data, labels):
-        losses = np.empty((0, 2))
+        self.klasses = np.unique(labels)
+        losses = np.empty((0, 3))
 
         # Shuffle input data and labels.
         self.data, self.labels = \
-            shuffle_data_labels(data, vectorize_labels(labels))
+            shuffle_data_labels(data, vectorize_labels(labels, len(self.klasses)))
 
-        self.cur_epoch = 0
         data_i = 0
+        self.cur_epoch = 0
+        self.cur_iteration = 0
         while not self.stopping_c.stop(self):
             # Slice data and labels for this epoch.
             cur_data = self.data[data_i:data_i+self.batch_size]
@@ -42,31 +43,34 @@ class NeuralNet(object):
             self._backward_p(self._compute_loss(cur_label, y_hat))
 
             # Gradient descent update.
-            lr = self.lr_func(self.cur_epoch)
+            lr = self.lr_func.apply(self.cur_iteration)
             self._update(lr)
 
-            if not self.cur_epoch % self.loss_period:
-                losses = np.append(losses,
-                                   [[self.cur_epoch, self.compute_all_loss()]],
-                                   axis=0)
-
-            if not self.cur_epoch % self.check_period:
+            # Do periodic job.
+            if self.check_period and (not self.cur_iteration % self.check_period):
+                print "EPOCH: {epoch} | perform numerical check.".format(epoch=self.cur_epoch)
                 self._numerical_check()
+                print "EPOCH: {epoch} | numerical check done.".format(epoch=self.cur_epoch)
 
-            if not self.cur_epoch % self.status_period:
+            if not self.cur_iteration % self.status_period:
                 print "EPOCH: {epoch} | Score: {score}"\
-                    .format(epoch=self.cur_epoch, score=self.score(self.data, self.labels))
+                    .format(epoch=self.cur_epoch, score=self.score(data, labels))
 
-            # Update cur_epoch and data index.
-            self.cur_epoch += 1
+            # Update cur_iteration and data index.
             data_i += self.batch_size
+            self.cur_iteration += 1
 
-            # After one full round on input data,
-            # reshuffle data and labels and reset data index.
+            # Finished one epoch.
             if data_i >= len(self.data):
-                data_i = 0
+                losses = np.append(losses,
+                                   [[self.cur_epoch,
+                                     self.compute_all_loss(),
+                                     self.score(data, labels)]],
+                                   axis=0)
                 self.data, self.labels = \
-                    shuffle_data_labels(data, vectorize_labels(labels))
+                    shuffle_data_labels(data, vectorize_labels(labels, len(self.klasses)))
+                data_i = 0
+                self.cur_epoch += 1
 
     def predict(self, data):
         vectorized = self._forward_p(data)

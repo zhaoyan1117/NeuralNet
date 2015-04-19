@@ -21,9 +21,8 @@ class NeuralNetBuilder(object):
         self.loss_func = None
         self.stopping_c = None
 
-        self.loss_period = 200
         self.check_period = None
-        self.status_period = 500
+        self.status_period = 1000
 
     def build(self):
         if not self.layers:
@@ -42,7 +41,6 @@ class NeuralNetBuilder(object):
                              self.loss_func,
                              self.stopping_c,
                              self.layers,
-                             loss_period=self.loss_period,
                              check_period=self.check_period,
                              status_period=self.status_period)
 
@@ -59,31 +57,29 @@ class NeuralNetBuilder(object):
             )
 
     def add_fully_connected_layer(self, size, act_func, sigma=1.0, bias=True):
+        cur_layer = layer.FullyConnectedLayer(self.cur_level,
+                                              size,
+                                              self.get_act_func(act_func),
+                                              sigma,
+                                              bias)
+
         if self.layers:
-            self.layers[-1].set_next_layer_size(size)
+            self.layers[-1].set_next_layer_size(cur_layer.size)
 
-        self.layers.append(
-            layer.FullyConnectedLayer(self.cur_level,
-                                      size,
-                                      self.get_act_func(act_func),
-                                      sigma,
-                                      bias)
-        )
+        self.layers.append(cur_layer)
         self.cur_level += 1
-
         return self
 
     def add_output_layer(self, size, act_func):
+        cur_layer = layer.OutputLayer(self.cur_level,
+                                      size,
+                                      self.get_act_func(act_func))
+
         if self.layers:
-            self.layers[-1].set_next_layer_size(size)
+            self.layers[-1].set_next_layer_size(cur_layer.size)
 
-        self.layers.append(
-            layer.OutputLayer(self.cur_level,
-                              size,
-                              self.get_act_func(act_func))
-        )
+        self.layers.append(cur_layer)
         self.cur_level += 1
-
         return self
 
     def add_batch_size(self, batch_size):
@@ -110,13 +106,10 @@ class NeuralNetBuilder(object):
         self.stopping_c = sc.MaxEpoch(max_epoch)
         return self
 
-    def add_loss_period(self, loss_period):
-        self.loss_period = loss_period
-        return self
-
     def add_check_period(self, check_period):
         self.check_period = check_period
         return self
 
     def add_status_period(self, status_period):
+        self.status_period = status_period
         return self

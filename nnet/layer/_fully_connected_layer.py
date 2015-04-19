@@ -34,7 +34,7 @@ class FullyConnectedLayer(LayerBase):
         else:
             self.z = z
 
-        self.a = self.activation_func.apply(z)
+        self.a = self.activation_func.apply(self.z)
         next_z = np.dot(self.a, self.weights)
         return next_z
 
@@ -45,6 +45,8 @@ class FullyConnectedLayer(LayerBase):
         if self.level != 1:
             self.delta = np.dot(next_delta, self.weights.T) \
                          * self.activation_func.apply_derivative(self.z)
+            if self.bias:
+                self.delta = np.delete(self.delta, -1, axis=1)
 
         return self.delta
 
