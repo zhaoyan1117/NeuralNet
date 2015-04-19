@@ -21,8 +21,7 @@ class NeuralNetBuilder(object):
         self.loss_func = None
         self.stopping_c = None
 
-        self.check_period = None
-        self.status_period = 1000
+        self.status_period = 10000
 
     def build(self):
         if not self.layers:
@@ -41,7 +40,6 @@ class NeuralNetBuilder(object):
                              self.loss_func,
                              self.stopping_c,
                              self.layers,
-                             check_period=self.check_period,
                              status_period=self.status_period)
 
     def get_act_func(self, act_func):
@@ -104,10 +102,6 @@ class NeuralNetBuilder(object):
 
     def add_max_epoch_stopping_criteria(self, max_epoch):
         self.stopping_c = sc.MaxEpoch(max_epoch)
-        return self
-
-    def add_check_period(self, check_period):
-        self.check_period = check_period
         return self
 
     def add_status_period(self, status_period):
