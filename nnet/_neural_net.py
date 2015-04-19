@@ -15,9 +15,9 @@ class NeuralNet(object):
         self.stopping_c = stopping_c
         self.layers = layers
 
-        self.data, self.labels = None, None
+        self.data, self.vec_labels = None, None
 
-        self.status_period = kwargs.get('status_period', 1000)
+        self.status_period = kwargs.get('status_period', 10000)
         self.check_period = kwargs.get('check_period')
 
     def train(self, data, labels):
@@ -25,7 +25,7 @@ class NeuralNet(object):
         losses = np.empty((0, 3))
 
         # Shuffle input data and labels.
-        self.data, self.labels = \
+        self.data, self.vec_labels = \
             shuffle_data_labels(data, vectorize_labels(labels, len(self.klasses)))
 
         data_i = 0
@@ -34,7 +34,7 @@ class NeuralNet(object):
         while not self.stopping_c.stop(self):
             # Slice data and labels for this epoch.
             cur_data = self.data[data_i:data_i+self.batch_size]
-            cur_label = self.labels[data_i:data_i+self.batch_size]
+            cur_label = self.vec_labels[data_i:data_i+self.batch_size]
 
             # Forward propagation.
             y_hat = self._forward_p(cur_data)
@@ -67,7 +67,7 @@ class NeuralNet(object):
                                      self.compute_all_loss(),
                                      self.score(data, labels)]],
                                    axis=0)
-                self.data, self.labels = \
+                self.data, self.vec_labels = \
                     shuffle_data_labels(data, vectorize_labels(labels, len(self.klasses)))
                 data_i = 0
                 self.cur_epoch += 1
@@ -99,16 +99,19 @@ class NeuralNet(object):
     def _numerical_check(self):
         for l in self.layers:
             passed = l.numerical_check(self)
-            if not passed:
+            if passed:
+                print "Layer {0} " \
+                      "passed numerical check.".format(l.level)
+            else:
                 print "WARNING: layer {0} " \
                       "failed numerical check.".format(l.level)
 
-    def _compute_loss(self, labels, predictions):
-        return self.loss_func.apply(labels, predictions)
+    def _compute_loss(self, vec_labels, predictions):
+        return self.loss_func.apply(vec_labels, predictions)
 
     def compute_all_loss(self):
         if self.data is None:
             raise NeuralNetException('Cannot compute loss without data.')
 
-        return self._compute_loss(self.labels,
+        return self._compute_loss(self.vec_labels,
                                   self._forward_p(self.data))
