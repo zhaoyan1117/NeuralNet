@@ -49,6 +49,7 @@ class FullyConnectedLayer(LayerBase):
 
     def backward_p(self, next_delta):
         del self.delta
+        self.delta = None
 
         cm.dot(self.a.transpose(), next_delta, target=self.weights_grad)
 

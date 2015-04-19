@@ -30,6 +30,7 @@ class NeuralNet(object):
         self.cu_data = cm.CUDAMatrix(self.data)
         self.cu_vec_labels = cm.CUDAMatrix(self.vec_labels)
 
+        cu_all_data = cm.CUDAMatrix(data)
         cur_data = cm.empty((self.batch_size, self.cu_data.shape[1]))
         cur_labels = cm.empty((self.batch_size, self.cu_vec_labels.shape[1]))
 
@@ -57,8 +58,10 @@ class NeuralNet(object):
 
             # Do periodic job.
             if not self.cur_iteration % self.status_period:
-                print "EPOCH: {epoch} | Score: {score}"\
-                    .format(epoch=self.cur_epoch, score=self.score(self.cu_data, labels))
+                print "EPOCH: {epoch} | Score: {score} | Loss: {loss}"\
+                    .format(epoch=self.cur_epoch,
+                            score=self.score(cu_all_data, labels),
+                            loss=self.compute_all_loss())
 
             # Update cur_iteration and data index.
             data_i += self.batch_size
@@ -70,7 +73,7 @@ class NeuralNet(object):
                 losses = np.append(losses,
                                    [[self.cur_epoch,
                                      self.compute_all_loss(),
-                                     self.score(self.cu_data, labels)]],
+                                     self.score(cu_all_data, labels)]],
                                    axis=0)
 
                 # Shuffle data.
@@ -83,6 +86,9 @@ class NeuralNet(object):
 
                 data_i = 0
                 self.cur_epoch += 1
+        del cur_labels
+        del cur_data
+        del cu_all_data
 
     def predict(self, data):
         if isinstance(data, np.ndarray):
