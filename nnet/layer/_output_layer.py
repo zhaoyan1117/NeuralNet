@@ -4,7 +4,7 @@ from ._base import LayerBase
 
 class OutputLayer(LayerBase):
 
-    def __init__(self, size, activation_func, level):
+    def __init__(self, level, size, activation_func):
         self.level = level
         self.size = size
         self.activation_func = activation_func

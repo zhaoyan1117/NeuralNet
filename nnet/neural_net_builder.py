@@ -69,5 +69,34 @@ class NeuralNetBuilder(object):
                                       sigma,
                                       bias)
         )
+        self.cur_level += 1
 
         return self
+
+    def add_output_layer(self, size, act_func):
+        if self.layers:
+            self.layers[-1].set_next_layer_size(size)
+
+        self.layers.append(
+            layer.OutputLayer(self.cur_level,
+                              size,
+                              self.get_act_func(act_func))
+        )
+        self.cur_level += 1
+
+        return self
+
+    def add_inv_prop_lr_func(self, eta_0, lbd):
+        self.lr_func = lrf.InvPropLR(eta_0, lbd)
+
+    def add_constant_lr_func(self, eta_0):
+        self.lr_func = lrf.ConstantLR(eta_0)
+
+    def add_mse_loss_func(self):
+        self.loss_func = lf.MeanSquaredError()
+
+    def add_cee_loss_func(self):
+        self.loss_func = lf.CrossEntropyError()
+
+    def add_max_epoch_stopping_criteria(self, max_epoch):
+        self.stopping_c = sc.MaxEpoch(max_epoch)
