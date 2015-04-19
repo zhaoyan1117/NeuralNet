@@ -1,9 +1,10 @@
 from __future__ import absolute_import, division
 
 import numpy as np
+import cudamat as cm
 
 from ._base import LayerBase
-from ..util import iterate_with_progress
+
 
 class FullyConnectedLayer(LayerBase):
 
@@ -13,75 +14,58 @@ class FullyConnectedLayer(LayerBase):
         self.activation_func = activation_func
         self.bias = bias
         self.sigma = sigma
-        self.a = None
-        self.z = None
-        self.delta = None
-        self.weights_grad = None
 
     def set_next_layer_size(self, next_size):
         self.next_size = next_size
-        self._init_weights(self.sigma)
+        self._init_weights()
 
-    def _init_weights(self, sigma):
-        if self.bias:
-            self.weights = sigma * np.random.randn(self.size+1, self.next_size)
-        else:
-            self.weights = sigma * np.random.randn(self.size, self.next_size)
+    def _init_weights(self):
+        # Throw-away a, z, and delta.
+        self.a = None
+        self.z = None
+        self.delta = None
+
+        actual_size = self.size+1 if self.bias else self.size
+
+        # Re-use weights and weights_grad.
+        self.weights = cm.CUDAMatrix(self.sigma * np.random.randn(actual_size, self.next_size))
+        self.weights_grad = cm.empty(self.weights.shape)
 
     def forward_p(self, z):
+        del self.z
+        del self.a
+
         if self.bias:
-            bias_term = np.ones((len(z), 1))
-            self.z = np.append(z, bias_term, axis=1)
+            # Copy back to cpu to append.
+            cpu_z = z.asarray()
+            bias_term = np.ones((len(cpu_z), 1))
+            self.z = cm.CUDAMatrix(np.append(cpu_z, bias_term, axis=1))
         else:
             self.z = z
 
         self.a = self.activation_func.apply(self.z)
-        next_z = np.dot(self.a, self.weights)
+        next_z = cm.dot(self.a, self.weights)
         return next_z
 
     def backward_p(self, next_delta):
-        self.weights_grad = np.dot(self.a.T, next_delta)
+        del self.delta
+
+        cm.dot(self.a.transpose(), next_delta, target=self.weights_grad)
 
         # No need to compute delta if layer is the first layer.
         if self.level != 1:
-            self.delta = np.dot(next_delta, self.weights.T) \
-                         * self.activation_func.apply_derivative(self.z)
+            temp_delta = cm.dot(next_delta, self.weights.transpose())\
+                .mult(self.activation_func.apply_derivative(self.z))
+
             if self.bias:
-                self.delta = np.delete(self.delta, -1, axis=1)
+                row, col = temp_delta.shape
+                self.delta = cm.empty((row, col-1))
+                temp_delta.get_col_slice(0, col-1, self.delta)
+                del temp_delta
+            else:
+                self.delta = temp_delta
 
         return self.delta
 
     def update(self, lr):
-        self.weights = self.weights - lr * self.weights_grad
-
-    def numerical_check(self, net):
-        epsilon = 1e-5
-        current_weights = self.weights
-        num_grad = np.zeros(self.weights.shape)
-        perturb = np.zeros(self.weights.shape)
-
-        total_size = current_weights.shape[0] * current_weights.shape[1]
-
-        for k in iterate_with_progress(xrange(total_size)):
-            i = k % current_weights.shape[0]
-            j = k // current_weights.shape[0]
-
-            perturb[i][j] = epsilon
-
-            self.weights = current_weights - perturb
-            loss1 = net.compute_all_loss()
-
-            self.weights = current_weights + perturb
-            loss2 = net.compute_all_loss()
-
-            num_grad[i][j] = (loss2 - loss1) / (2*epsilon)
-
-            perturb[i][j] = 0.0
-
-        self.weights = current_weights
-
-        diff = np.linalg.norm((self.weights_grad - num_grad).ravel())
-        sum = np.linalg.norm((self.weights_grad + num_grad).ravel())
-        ratio = diff/sum
-
-        return ratio < 1e-8, ratio
+        self.weights.subtract(self.weights_grad.mult(lr))
