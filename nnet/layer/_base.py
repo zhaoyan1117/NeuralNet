@@ -20,7 +20,3 @@ class LayerBase(object):
     @abstractmethod
     def update(self, epoch):
         pass
-
-    @abstractmethod
-    def numerical_check(self, net):
-        pass

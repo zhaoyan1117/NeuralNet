@@ -1,5 +1,7 @@
 from __future__ import absolute_import, division
 
+import cudamat as cm
+
 from ._base import LayerBase
 
 class OutputLayer(LayerBase):
@@ -9,6 +11,7 @@ class OutputLayer(LayerBase):
         self.size = size
         self.activation_func = activation_func
         self.z = None
+        self.a = None
         self.delta = None
 
     def set_next_layer_size(self, next_size):
@@ -16,18 +19,22 @@ class OutputLayer(LayerBase):
         pass
 
     def forward_p(self, z):
+        del self.z
+        del self.a
+
         self.z = z
-        return self.activation_func.apply(self.z)
+        self.a = self.activation_func.apply(self.z)
+        return self.a
 
     def backward_p(self, next_delta):
-        self.delta = next_delta \
-                     * self.activation_func.apply_derivative(self.z)
+        del self.delta
+
+        self.delta = cm.empty(next_delta.shape)
+        next_delta.mult(self.activation_func.apply_derivative(self.z),
+                        self.delta)
+
         return self.delta
 
     def update(self, lr):
         # No weights to update for output layer.
         return None
-
-    def numerical_check(self, net):
-        # Output layer does not have weights to check.
-        return True, 0.0
