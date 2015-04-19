@@ -1,16 +1,23 @@
 from __future__ import absolute_import, division
 
-import numpy as np
+import cudamat as cm
 
 from ._base import ActivationFuncBase
 
 class Sigmoid(ActivationFuncBase):
 
     def apply(self, z):
-        return 1.0 \
-               / (1.0 + np.exp(-z))
+        sig = cm.empty(z.shape)
+        z.apply_sigmoid(sig)
+        return sig
 
     def apply_derivative(self, z):
-        exp_z = np.exp(z)
-        return exp_z \
-               / ((1.0 + exp_z) ** 2)
+        sig = cm.empty(z.shape)
+        z.apply_sigmoid(sig)
+
+        one_m_sig = cm.empty(sig.shape)
+        sig.mult(-1, one_m_sig)
+        one_m_sig.add(1)
+        sig.mult(one_m_sig)
+
+        return sig
