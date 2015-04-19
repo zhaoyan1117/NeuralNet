@@ -5,8 +5,8 @@ import nnet.layer as layer
 import nnet.learning_rate_func as lrf
 import nnet.loss_func as lf
 import nnet.stopping_criteria as sc
-from nnet.neural_net import NeuralNet
-from nnet.neural_net_exception import NeuralNetException
+from nnet._neural_net import NeuralNet
+from nnet._neural_net_exception import NeuralNetException
 
 class NeuralNetBuilder(object):
 
@@ -16,11 +16,11 @@ class NeuralNetBuilder(object):
     def reset(self):
         self.cur_level = 1
         self.layers = []
+        self.batch_size = 10
         self.lr_func = None
         self.loss_func = None
         self.stopping_c = None
 
-        self.batch_size = 10
         self.loss_period = 200
         self.check_period = None
         self.status_period = 500
@@ -86,17 +86,37 @@ class NeuralNetBuilder(object):
 
         return self
 
+    def add_batch_size(self, batch_size):
+        self.batch_size = batch_size
+        return self
+
     def add_inv_prop_lr_func(self, eta_0, lbd):
         self.lr_func = lrf.InvPropLR(eta_0, lbd)
+        return self
 
     def add_constant_lr_func(self, eta_0):
         self.lr_func = lrf.ConstantLR(eta_0)
+        return self
 
     def add_mse_loss_func(self):
         self.loss_func = lf.MeanSquaredError()
+        return self
 
     def add_cee_loss_func(self):
         self.loss_func = lf.CrossEntropyError()
+        return self
 
     def add_max_epoch_stopping_criteria(self, max_epoch):
         self.stopping_c = sc.MaxEpoch(max_epoch)
+        return self
+
+    def add_loss_period(self, loss_period):
+        self.loss_period = loss_period
+        return self
+
+    def add_check_period(self, check_period):
+        self.check_period = check_period
+        return self
+
+    def add_status_period(self, status_period):
+        return self

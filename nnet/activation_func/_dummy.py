@@ -1,7 +1,7 @@
 from __future__ import absolute_import, division
 
 from ._base import ActivationFuncBase
-from ..neural_net_exception import NeuralNetException
+from .._neural_net_exception import NeuralNetException
 
 class Dummy(ActivationFuncBase):
     """

@@ -2,7 +2,7 @@ from __future__ import absolute_import
 
 import numpy as np
 
-from .neural_net_exception import NeuralNetException
+from ._neural_net_exception import NeuralNetException
 from .util import vectorize_labels, devectorize_labels, shuffle_data_labels
 
 class NeuralNet(object):
