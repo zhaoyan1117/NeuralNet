@@ -6,6 +6,10 @@ class LayerBase(object):
     __metaclass__ = ABCMeta
 
     @abstractmethod
+    def set_next_layer_size(self, next_size):
+        pass
+
+    @abstractmethod
     def forward_p(self, z):
         pass
 

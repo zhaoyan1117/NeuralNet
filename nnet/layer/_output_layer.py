@@ -11,6 +11,10 @@ class OutputLayer(LayerBase):
         self.z = None
         self.delta = None
 
+    def set_next_layer_size(self, next_size):
+        # Output layer does not have next layer.
+        pass
+
     def forward_p(self, z):
         self.z = z
         return self.activation_func.apply(z)

@@ -6,18 +6,20 @@ from ._base import LayerBase
 
 class FullyConnectedLayer(LayerBase):
 
-    def __init__(self, size, next_size, activation_func, level,
-                 bias=True, sigma=1.0):
+    def __init__(self, level, size, activation_func, sigma=1.0, bias=True):
         self.level = level
         self.size = size
-        self.next_size = next_size
         self.activation_func = activation_func
         self.bias = bias
+        self.sigma = sigma
         self.a = None
         self.z = None
         self.delta = None
         self.weights_derivative = None
-        self._init_weights(sigma)
+
+    def set_next_layer_size(self, next_size):
+        self.next_size = next_size
+        self._init_weights(self.sigma)
 
     def _init_weights(self, sigma):
         if self.bias:
