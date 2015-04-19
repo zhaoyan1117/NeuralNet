@@ -4,7 +4,6 @@ import numpy as np
 
 from ._base import ActivationFuncBase
 
-
 class Sigmoid(ActivationFuncBase):
 
     def apply(self, z):
