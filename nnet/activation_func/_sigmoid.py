@@ -12,6 +12,6 @@ class Sigmoid(ActivationFuncBase):
                / (1.0 + np.exp(-z))
 
     def apply_derivative(self, z):
-        exp_nz = np.exp(-z)
-        return exp_nz \
-               / ((1.0 + exp_nz) ** 2)
+        exp_z = np.exp(z)
+        return exp_z \
+               / ((1.0 + exp_z) ** 2)

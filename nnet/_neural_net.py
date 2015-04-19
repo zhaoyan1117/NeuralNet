@@ -40,11 +40,14 @@ class NeuralNet(object):
             y_hat = self._forward_p(cur_data)
 
             # Backward propagation.
-            self._backward_p(self._compute_loss(cur_label, y_hat))
+            self._backward_p(
+                self.loss_func.apply_derivative(cur_label, y_hat)
+            )
 
             # Gradient descent update.
-            lr = self.lr_func.apply(self.cur_iteration)
-            self._update(lr)
+            self._update(
+                self.lr_func.apply(self.cur_iteration)
+            )
 
             # Do periodic job.
             if self.check_period and (not self.cur_iteration % self.check_period):
@@ -98,13 +101,13 @@ class NeuralNet(object):
 
     def _numerical_check(self):
         for l in self.layers:
-            passed = l.numerical_check(self)
+            passed, ratio = l.numerical_check(self)
             if passed:
                 print "Layer {0} " \
-                      "passed numerical check.".format(l.level)
+                      "passed numerical check with ratio {1}.".format(l.level, ratio)
             else:
                 print "WARNING: layer {0} " \
-                      "failed numerical check.".format(l.level)
+                      "failed numerical check with ratio {1}.".format(l.level, ratio)
 
     def _compute_loss(self, vec_labels, predictions):
         return self.loss_func.apply(vec_labels, predictions)

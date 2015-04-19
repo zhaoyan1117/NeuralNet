@@ -17,7 +17,7 @@ class OutputLayer(LayerBase):
 
     def forward_p(self, z):
         self.z = z
-        return self.activation_func.apply(z)
+        return self.activation_func.apply(self.z)
 
     def backward_p(self, next_delta):
         self.delta = next_delta \
@@ -30,4 +30,4 @@ class OutputLayer(LayerBase):
 
     def numerical_check(self, net):
         # Output layer does not have weights to check.
-        return True
+        return True, 0.0

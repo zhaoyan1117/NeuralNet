@@ -75,7 +75,6 @@ class FullyConnectedLayer(LayerBase):
             loss2 = net.compute_all_loss()
 
             num_grad[i][j] = (loss2 - loss1) / (2*epsilon)
-            # print self.weights_grad[i][j] - num_grad[i][j]
 
             perturb[i][j] = 0.0
 
@@ -83,4 +82,6 @@ class FullyConnectedLayer(LayerBase):
 
         diff = np.linalg.norm((self.weights_grad - num_grad).ravel())
         sum = np.linalg.norm((self.weights_grad + num_grad).ravel())
-        return diff/sum < 1e-8
+        ratio = diff/sum
+
+        return ratio < 1e-8, ratio
