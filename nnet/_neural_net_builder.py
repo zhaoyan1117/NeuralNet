@@ -17,7 +17,7 @@ class NeuralNetBuilder(object):
         self.layers = []
         self.batch_size = 10
         self.lr_func = None
-        self.stopping_c = None
+        self.stopping_c = sc.OrConditions()
 
         self.status_period = 10000
 
@@ -28,7 +28,7 @@ class NeuralNetBuilder(object):
             raise NeuralNetException('Last layer must be OutputLayer.')
         elif self.lr_func is None:
             raise NeuralNetException('No learning rate function.')
-        elif self.stopping_c is None:
+        elif self.stopping_c.is_empty:
             raise NeuralNetException('No stopping criteria.')
         else:
             return NeuralNet(self.batch_size,
@@ -89,7 +89,11 @@ class NeuralNetBuilder(object):
         return self
 
     def add_max_epoch_stopping_criteria(self, max_epoch):
-        self.stopping_c = sc.MaxEpoch(max_epoch)
+        self.stopping_c.add_sc(sc.MaxEpoch(max_epoch))
+        return self
+
+    def add_min_improve_stopping_criteria(self, k, threshold):
+        self.stopping_c.add_sc(sc.MinImproveScore(k, threshold))
         return self
 
     def add_status_period(self, status_period):

@@ -8,4 +8,10 @@ class MaxEpoch(StoppingCriteriaBase):
         self.max_epoch = max_epoch
 
     def stop(self, net):
-        return net.cur_epoch > self.max_epoch
+        if net.cur_epoch >= self.max_epoch:
+            print('Stop at EPOCH {epoch}, '
+                  'exceeds max epoch {max_epoch}'
+                  .format(epoch=net.cur_epoch, max_epoch=self.max_epoch))
+            return True
+        else:
+            return False

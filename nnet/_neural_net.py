@@ -72,6 +72,8 @@ class NeuralNet(object):
 
             # Finished one epoch.
             if data_i >= len(self.data):
+                data_i = 0
+                self.cur_epoch += 1
                 score, loss = self._training_score_n_loss(cu_no_shuffle_data,
                                                           cu_no_shuffle_labels,
                                                           labels)
@@ -85,9 +87,6 @@ class NeuralNet(object):
                     shuffle_data_labels(data, vec_labels)
                 self.cu_data, self.cu_labels = \
                     cm.CUDAMatrix(self.data), cm.CUDAMatrix(self.labels)
-
-                data_i = 0
-                self.cur_epoch += 1
 
         # Free memory.
         del cu_no_shuffle_data
