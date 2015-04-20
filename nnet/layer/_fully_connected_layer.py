@@ -38,22 +38,23 @@ class FullyConnectedLayer(LayerBase):
             self.z = z
 
         self.a = self.activation_func.apply(self.z)
-        return cm.dot(self.a, self.weights)
+        self.next_z = cm.dot(self.a, self.weights)
+        return self.next_z
 
     def backward_p(self, next_delta):
         cm.dot(self.a.transpose(), next_delta, target=self.weights_grad)
 
-        my_delta = None
+        self.my_delta = None
         if self.level != 1:
             temp_delta = cm.dot(next_delta, self.weights.transpose())\
                 .mult(self.activation_func.apply_derivative(self.z))
             if self.bias:
                 row, col = temp_delta.shape
-                my_delta = temp_delta.get_col_slice(0, col-1)
+                self.my_delta = temp_delta.get_col_slice(0, col-1)
             else:
-                my_delta = temp_delta
+                self.my_delta = temp_delta
 
-        return my_delta
+        return self.my_delta
 
     def update(self, lr):
         self.weights.subtract(self.weights_grad.mult(lr))

@@ -35,18 +35,18 @@ class OutputLayer(LayerBase):
         return self.a
 
     def backward_p(self, y):
-        my_delta = cm.empty(y.shape)
-        self.a.subtract(y, my_delta)
-        my_delta.divide(float(my_delta.shape[0]))
+        self.my_delta = cm.empty(y.shape)
+        self.a.subtract(y, self.my_delta)
+        self.my_delta.divide(float(self.my_delta.shape[0]))
 
         if self.loss_func == 'MSE':
-            my_delta.mult(self.activation_func.apply_derivative(self.z))
+            self.my_delta.mult(self.activation_func.apply_derivative(self.z))
         elif self.loss_func == 'CEE':
             pass
         else:
             raise NeuralNetException('Loss func {0} is not supported.'.format(self.loss_func))
 
-        return my_delta
+        return self.my_delta
 
     def compute_loss(self, y):
         if self.loss_func == 'MSE':

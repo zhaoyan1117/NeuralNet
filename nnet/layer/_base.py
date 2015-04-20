@@ -26,3 +26,7 @@ class LayerBase(object):
             del self.z
         if hasattr(self, 'a'):
             del self.a
+        if hasattr(self, 'next_z'):
+            del self.next_z
+        if hasattr(self, 'my_delta'):
+            del self.my_delta
