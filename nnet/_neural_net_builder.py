@@ -3,7 +3,6 @@ from __future__ import absolute_import
 import nnet.activation_func as af
 import nnet.layer as layer
 import nnet.learning_rate_func as lrf
-import nnet.loss_func as lf
 import nnet.stopping_criteria as sc
 from nnet._neural_net import NeuralNet
 from nnet._neural_net_exception import NeuralNetException
@@ -18,7 +17,6 @@ class NeuralNetBuilder(object):
         self.layers = []
         self.batch_size = 10
         self.lr_func = None
-        self.loss_func = None
         self.stopping_c = None
 
         self.status_period = 10000
@@ -30,14 +28,11 @@ class NeuralNetBuilder(object):
             raise NeuralNetException('Last layer must be OutputLayer.')
         elif self.lr_func is None:
             raise NeuralNetException('No learning rate function.')
-        elif self.loss_func is None:
-            raise NeuralNetException('No loss function.')
         elif self.stopping_c is None:
             raise NeuralNetException('No stopping criteria.')
         else:
             return NeuralNet(self.batch_size,
                              self.lr_func,
-                             self.loss_func,
                              self.stopping_c,
                              self.layers,
                              status_period=self.status_period)
@@ -68,10 +63,11 @@ class NeuralNetBuilder(object):
         self.cur_level += 1
         return self
 
-    def add_output_layer(self, size, act_func):
+    def add_output_layer(self, size, act_func, loss_func):
         cur_layer = layer.OutputLayer(self.cur_level,
                                       size,
-                                      self.get_act_func(act_func))
+                                      self.get_act_func(act_func),
+                                      loss_func)
 
         if self.layers:
             self.layers[-1].set_next_layer_size(cur_layer.size)
@@ -90,14 +86,6 @@ class NeuralNetBuilder(object):
 
     def add_constant_lr_func(self, eta_0):
         self.lr_func = lrf.ConstantLR(eta_0)
-        return self
-
-    def add_mse_loss_func(self):
-        self.loss_func = lf.MeanSquaredError()
-        return self
-
-    def add_cee_loss_func(self):
-        self.loss_func = lf.CrossEntropyError()
         return self
 
     def add_max_epoch_stopping_criteria(self, max_epoch):

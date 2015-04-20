@@ -14,7 +14,7 @@ class LayerBase(object):
         pass
 
     @abstractmethod
-    def backward_p(self, next_delta):
+    def backward_p(self, next_delta_or_y):
         pass
 
     @abstractmethod
