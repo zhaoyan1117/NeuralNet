@@ -1,6 +1,7 @@
 from __future__ import absolute_import, division
 
 import cudamat as cm
+import numpy as np
 
 from ._base import LayerBase
 from .._neural_net_exception import NeuralNetException
@@ -65,7 +66,19 @@ class OutputLayer(LayerBase):
         return diff_sum / float(2*size)
 
     def _compute_loss_CEE(self, y):
-        pass
+        # Copy to cpu to compute loss due to numerical issue.
+        # This should be a huge performance bottleneck
+        # since we don't compute loss at every iteration.
+        cpu_y = y.asarray().astype(np.double)
+        cpu_y_hat = self.a.asarray().astype(np.double)
+
+        cpu_y_hat[np.nonzero(cpu_y_hat==0)] = 1e-8
+        cpu_y_hat[np.nonzero(cpu_y_hat==1)] = 1-1e-8
+
+        entropy = cpu_y * np.log(cpu_y_hat) \
+                  + (1.0 - cpu_y) * np.log(1.0 - cpu_y_hat)
+        return -np.sum(entropy) \
+               / float(len(entropy))
 
     def _find_sum(self, mat):
         col_sum = mat.sum(axis=0)
