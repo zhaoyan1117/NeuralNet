@@ -17,14 +17,17 @@ class NeuralNet(object):
         self.status_period = kwargs.get('status_period', 10000)
 
     def train(self, data, labels):
-        self.klasses = np.unique(labels)
         losses = np.empty((0, 3))
 
+        self.klasses = np.unique(labels)
+        vec_labels = vectorize_labels(labels, len(self.klasses))
+
         cu_no_shuffle_data = cm.CUDAMatrix(data)
+        cu_no_shuffle_labels = cm.CUDAMatrix(vec_labels)
 
         # Shuffle input data and labels.
         self.data, self.labels = \
-            shuffle_data_labels(data, vectorize_labels(labels, len(self.klasses)))
+            shuffle_data_labels(data, vec_labels)
         self.cu_data, self.cu_labels = \
             cm.CUDAMatrix(self.data), cm.CUDAMatrix(self.labels)
 
@@ -57,10 +60,11 @@ class NeuralNet(object):
 
             # Do periodic job.
             if not self.cur_iteration % self.status_period:
-                print "EPOCH: {epoch} | Score: {score} | Loss: {loss}"\
-                    .format(epoch=self.cur_epoch,
-                            score=self.score(cu_no_shuffle_data, labels),
-                            loss=self.compute_all_loss())
+                score, loss = self._training_score_n_loss(cu_no_shuffle_data,
+                                                          cu_no_shuffle_labels,
+                                                          labels)
+                print "EPOCH: {:4d} | Score: {:13.12f} | Loss: {:13.10f}"\
+                    .format(self.cur_epoch, score, loss)
 
             # Update cur_iteration and data index.
             data_i += self.batch_size
@@ -68,16 +72,17 @@ class NeuralNet(object):
 
             # Finished one epoch.
             if data_i >= len(self.data):
+                score, loss = self._training_score_n_loss(cu_no_shuffle_data,
+                                                          cu_no_shuffle_labels,
+                                                          labels)
                 losses = np.append(losses,
-                                   [[self.cur_epoch,
-                                     self.compute_all_loss(),
-                                     self.score(cu_no_shuffle_data, labels)]],
+                                   [[self.cur_epoch, score, loss]],
                                    axis=0)
 
                 # Re-shuffle data.
                 del self.cu_data, self.cu_labels
                 self.data, self.labels = \
-                    shuffle_data_labels(data, vectorize_labels(labels, len(self.klasses)))
+                    shuffle_data_labels(data, vec_labels)
                 self.cu_data, self.cu_labels = \
                     cm.CUDAMatrix(self.data), cm.CUDAMatrix(self.labels)
 
@@ -91,26 +96,24 @@ class NeuralNet(object):
         del self.data, self.labels
 
     def predict(self, data):
-        if isinstance(data, np.ndarray):
-            is_local = True
-            cu_data = cm.CUDAMatrix(data)
-        else:
-            is_local = False
-            cu_data = data
-
-        cu_vectorized = self._forward_p(cu_data)
-        vectorized = cu_vectorized.asarray()
-
-        del cu_vectorized
-        if is_local:
-            del cu_data
-
-        return devectorize_labels(vectorized)
+        cu_data = cm.CUDAMatrix(data)
+        cu_predicted = self._forward_p(cu_data)
+        vec_predicted = cu_predicted.asarray()
+        del cu_predicted, cu_data
+        return devectorize_labels(vec_predicted)
 
     def score(self, data, labels):
         predictions = self.predict(data)
         correct = predictions == labels
         return np.count_nonzero(correct) / float(len(labels))
+
+    def _training_score_n_loss(self, cu_data, cu_labels, labels):
+        loss, cu_predicted = self._compute_loss(cu_data, cu_labels)
+        predictions = devectorize_labels(cu_predicted.asarray())
+        del cu_predicted
+        correct = predictions == labels
+        score = np.count_nonzero(correct) / float(len(labels))
+        return score, loss
 
     def _forward_p(self, data):
         cur_z = data
@@ -128,11 +131,8 @@ class NeuralNet(object):
             l.update(lr)
 
     def _compute_loss(self, cu_data, cu_labels):
-        self._forward_p(cu_data)
-        return self.layers[-1].compute_loss(cu_labels)
-
-    def compute_all_loss(self):
-        if self.data is None:
-            raise NeuralNetException('Cannot compute loss without data.')
-
-        return self._compute_loss(self.cu_data, self.cu_labels)
+        cu_predicted = self._forward_p(cu_data)
+        return (
+            self.layers[-1].compute_loss(cu_labels),
+            cu_predicted
+        )
