@@ -20,14 +20,12 @@ class FullyConnectedLayer(LayerBase):
         self._init_weights()
 
     def _init_weights(self):
-        # Throw-away a, z, and delta.
         self.a = None
         self.z = None
         self.delta = None
 
-        actual_size = self.size+1 if self.bias else self.size
-
         # Re-use weights and weights_grad.
+        actual_size = self.size+1 if self.bias else self.size
         self.weights = cm.CUDAMatrix(self.sigma * np.random.randn(actual_size, self.next_size))
         self.weights_grad = cm.empty(self.weights.shape)
 
@@ -36,16 +34,13 @@ class FullyConnectedLayer(LayerBase):
         del self.a
 
         if self.bias:
-            # Copy back to cpu to append.
-            cpu_z = z.asarray()
-            bias_term = np.ones((len(cpu_z), 1))
-            self.z = cm.CUDAMatrix(np.append(cpu_z, bias_term, axis=1))
+            self.z = cm.CUDAMatrix(np.ones((z.shape[0], z.shape[1]+1)))
+            self.z.set_col_slice(0, z.shape[1], z)
         else:
             self.z = z
 
         self.a = self.activation_func.apply(self.z)
-        next_z = cm.dot(self.a, self.weights)
-        return next_z
+        return cm.dot(self.a, self.weights)
 
     def backward_p(self, next_delta):
         del self.delta
