@@ -17,7 +17,7 @@ class NeuralNet(object):
         self.status_period = kwargs.get('status_period', 10000)
 
     def train(self, data, labels):
-        losses = np.empty((0, 3))
+        self.losses = np.empty((0, 3))
 
         self.klasses = np.unique(labels)
         vec_labels = vectorize_labels(labels, len(self.klasses))
@@ -75,7 +75,7 @@ class NeuralNet(object):
                 score, loss = self._training_score_n_loss(cu_no_shuffle_data,
                                                           cu_no_shuffle_labels,
                                                           labels)
-                losses = np.append(losses,
+                self.losses = np.append(self.losses,
                                    [[self.cur_epoch, score, loss]],
                                    axis=0)
 
@@ -94,6 +94,7 @@ class NeuralNet(object):
         del cur_data, cur_labels
         del self.cu_data, self.cu_labels
         del self.data, self.labels
+        return self.losses
 
     def predict(self, data):
         cu_data = cm.CUDAMatrix(data)

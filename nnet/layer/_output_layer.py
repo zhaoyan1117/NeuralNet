@@ -27,8 +27,7 @@ class OutputLayer(LayerBase):
         pass
 
     def forward_p(self, z):
-        del self.z
-        del self.a
+        self._free_mem()
 
         self.z = z
         self.a = self.activation_func.apply(self.z)

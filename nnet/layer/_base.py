@@ -20,3 +20,9 @@ class LayerBase(object):
     @abstractmethod
     def update(self, epoch):
         pass
+
+    def _free_mem(self):
+        if hasattr(self, 'z'):
+            del self.z
+        if hasattr(self, 'a'):
+            del self.a

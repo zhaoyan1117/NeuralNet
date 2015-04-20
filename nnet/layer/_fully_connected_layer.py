@@ -29,8 +29,7 @@ class FullyConnectedLayer(LayerBase):
         self.weights_grad = cm.empty(self.weights.shape)
 
     def forward_p(self, z):
-        del self.z
-        del self.a
+        self._free_mem()
 
         if self.bias:
             self.z = cm.CUDAMatrix(np.ones((z.shape[0], z.shape[1]+1)))
