@@ -99,7 +99,7 @@ class NeuralNet(object):
         del self.data, self.labels
 
         duration = (time.time() - start) / 60
-        print("Training takes {0} minutes.".format(duration))
+        print "Training takes {0} minutes.".format(duration)
 
         # Return losses.
         return self.losses
