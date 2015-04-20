@@ -42,12 +42,16 @@ class FullyConnectedLayer(LayerBase):
         return self.next_z
 
     def backward_p(self, next_delta):
-        cm.dot(self.a.transpose(), next_delta, target=self.weights_grad)
+        a_transpose = self.a.transpose()
+        cm.dot(a_transpose, next_delta, target=self.weights_grad)
+        del a_transpose
 
         self.my_delta = None
         if self.level != 1:
-            temp_delta = cm.dot(next_delta, self.weights.transpose())\
+            weights_transpose = self.weights.transpose()
+            temp_delta = cm.dot(next_delta, weights_transpose)\
                 .mult(self.activation_func.apply_derivative(self.z))
+            del weights_transpose
             if self.bias:
                 row, col = temp_delta.shape
                 self.my_delta = temp_delta.get_col_slice(0, col-1)
