@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import time
+
 import numpy as np
 import cudamat as cm
 
@@ -17,6 +19,8 @@ class NeuralNet(object):
         self.status_period = kwargs.get('status_period', 10000)
 
     def train(self, data, labels):
+        start = time.time()
+
         self.losses = np.empty((0, 3))
 
         self.klasses = np.unique(labels)
@@ -93,6 +97,9 @@ class NeuralNet(object):
         del cur_data, cur_labels
         del self.cu_data, self.cu_labels
         del self.data, self.labels
+
+        duration = (time.time() - start) / 60
+        print("Training takes {0} minutes.".format(duration))
 
         # Return losses.
         return self.losses

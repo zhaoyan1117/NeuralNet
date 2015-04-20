@@ -80,6 +80,10 @@ class NeuralNetBuilder(object):
         self.batch_size = batch_size
         return self
 
+    def add_step_size_lr_func(self, eta_0, gamma, step_size):
+        self.lr_func = lrf.StepSizeLR(eta_0, gamma, step_size)
+        return self
+
     def add_inv_prop_lr_func(self, eta_0, lbd):
         self.lr_func = lrf.InvPropLR(eta_0, lbd)
         return self

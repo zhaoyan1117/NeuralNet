@@ -10,4 +10,4 @@ class InvPropLR(LearningRateFuncBase):
 
     def apply(self, t):
         return self.eta_0 \
-               / (1 + pow(t, self.lbd))
+               / (1.0 + self.eta_0 * self.lbd * t)
