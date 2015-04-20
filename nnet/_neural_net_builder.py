@@ -19,7 +19,8 @@ class NeuralNetBuilder(object):
         self.lr_func = None
         self.stopping_c = sc.OrConditions()
 
-        self.status_period = 10000
+        self.print_period = 10000
+        self.status_period = self.print_period
 
     def build(self):
         if not self.layers:
@@ -35,6 +36,7 @@ class NeuralNetBuilder(object):
                              self.lr_func,
                              self.stopping_c,
                              self.layers,
+                             print_period=self.print_period,
                              status_period=self.status_period)
 
     def get_act_func(self, act_func):
@@ -98,6 +100,10 @@ class NeuralNetBuilder(object):
 
     def add_min_improve_stopping_criteria(self, k, threshold):
         self.stopping_c.add_sc(sc.MinImproveScore(k, threshold))
+        return self
+
+    def add_print_period(self, print_period):
+        self.status_period = print_period
         return self
 
     def add_status_period(self, status_period):

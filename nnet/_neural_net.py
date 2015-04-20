@@ -16,12 +16,15 @@ class NeuralNet(object):
         self.stopping_c = stopping_c
         self.layers = layers
 
-        self.status_period = kwargs.get('status_period', 10000)
+        self.print_period = kwargs.get('print_period',
+                                       10000)
+        self.status_period = kwargs.get('status_period',
+                                        self.print_period)
 
     def train(self, data, labels):
         start = time.time()
 
-        self.losses = np.empty((0, 3))
+        self.losses = np.empty((0, 4))
 
         self.klasses = np.unique(labels)
         vec_labels = vectorize_labels(labels, len(self.klasses))
@@ -63,12 +66,27 @@ class NeuralNet(object):
             )
 
             # Do periodic job.
-            if not self.cur_iteration % self.status_period:
+            if not self.cur_iteration % self.status_period\
+                    or not self.cur_iteration % self.print_period:
+
                 score, loss = self._training_score_n_loss(cu_no_shuffle_data,
                                                           cu_no_shuffle_labels,
                                                           labels)
-                print "EPOCH: {:4d} | Score: {:13.12f} | Loss: {:13.10f}"\
-                    .format(self.cur_epoch, score, loss)
+
+                if not self.cur_iteration % self.print_period:
+                    print "Epoch: {:4d} | " \
+                          "Iteration: {:4d} x {print_period} | " \
+                          "Score: {:13.12f} | " \
+                          "Loss: {:13.10f}"\
+                        .format(self.cur_epoch,
+                                self.cur_iteration / self.print_period,
+                                score, loss,
+                                print_period=self.print_period)
+
+                if not self.cur_iteration % self.status_period:
+                    self.losses = np.append(self.losses,
+                                            [[self.cur_epoch, self.cur_iteration, score, loss]],
+                                            axis=0)
 
             # Update cur_iteration and data index.
             data_i += self.batch_size
@@ -78,12 +96,6 @@ class NeuralNet(object):
             if data_i >= len(self.data):
                 data_i = 0
                 self.cur_epoch += 1
-                score, loss = self._training_score_n_loss(cu_no_shuffle_data,
-                                                          cu_no_shuffle_labels,
-                                                          labels)
-                self.losses = np.append(self.losses,
-                                   [[self.cur_epoch, score, loss]],
-                                   axis=0)
 
                 # Re-shuffle data.
                 del self.cu_data, self.cu_labels
