@@ -7,17 +7,26 @@ from ._base import ActivationFuncBase
 class Sigmoid(ActivationFuncBase):
 
     def apply(self, z):
-        sig = cm.empty(z.shape)
-        z.apply_sigmoid(sig)
-        return sig
+        self._free_memory()
+
+        self._sig = cm.empty(z.shape)
+        z.apply_sigmoid(self._sig)
+        return self._sig
 
     def apply_derivative(self, z):
-        sig = cm.empty(z.shape)
-        z.apply_sigmoid(sig)
+        self._free_memory()
 
-        one_m_sig = cm.empty(sig.shape)
-        sig.mult(-1, one_m_sig)
+        self._sig = cm.empty(z.shape)
+        z.apply_sigmoid(self._sig)
+
+        one_m_sig = cm.empty(self._sig.shape)
+        self._sig.mult(-1, one_m_sig)
         one_m_sig.add(1)
-        sig.mult(one_m_sig)
+        del one_m_sig
+        self._sig.mult(one_m_sig)
 
-        return sig
+        return self._sig
+
+    def _free_memory(self):
+        if hasattr(self, '_sig'):
+            del self._sig

@@ -8,14 +8,22 @@ from ._base import ActivationFuncBase
 class Tanh(ActivationFuncBase):
 
     def apply(self, z):
-        th = cm.empty(z.shape)
-        z.apply_tanh(th)
-        return th
+        self._free_memory()
+
+        self._th = cm.empty(z.shape)
+        z.apply_tanh(self._th)
+        return self._th
 
     def apply_derivative(self, z):
-        th = cm.empty(z.shape)
-        z.apply_tanh(th)
+        self._free_memory()
 
-        cm.pow(th, 2, th)
-        th.mult(-1).add(1)
-        return th
+        self._th = cm.empty(z.shape)
+        z.apply_tanh(self._th)
+
+        cm.pow(self._th, 2, self._th)
+        self._th.mult(-1).add(1)
+        return self._th
+
+    def _free_memory(self):
+        if hasattr(self, '_th'):
+            del self._th

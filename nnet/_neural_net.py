@@ -105,10 +105,10 @@ class NeuralNet(object):
                     cm.CUDAMatrix(self.data), cm.CUDAMatrix(self.labels)
 
         # Free memory.
-        del cu_no_shuffle_data
         del cur_data, cur_labels
-        del self.cu_data, self.cu_labels
         del self.data, self.labels
+        del self.cu_data, self.cu_labels
+        del cu_no_shuffle_data, cu_no_shuffle_labels
 
         duration = (time.time() - start) / 60
         print "Training takes {0} minutes.".format(duration)
