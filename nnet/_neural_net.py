@@ -128,7 +128,7 @@ class NeuralNet(object):
             l.update(lr)
 
     def _compute_loss(self, cu_data, cu_labels):
-        self._forward_p(self.cu_data)
+        self._forward_p(cu_data)
         return self.layers[-1].compute_loss(cu_labels)
 
     def compute_all_loss(self):
