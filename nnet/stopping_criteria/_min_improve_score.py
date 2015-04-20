@@ -26,11 +26,11 @@ class MinImproveScore(StoppingCriteriaBase):
             self.last_update = latest_update
 
             cur_score = np.mean(
-                net.losses[latest_update-self.k:latest_update, 1]
+                net.losses[latest_update-self.k:latest_update, 2]
             )
 
             last_score = np.mean(
-                net.losses[latest_update-2*self.k:latest_update-self.k, 1]
+                net.losses[latest_update-2*self.k:latest_update-self.k, 2]
             )
 
             if cur_score - last_score > self.threshold:
