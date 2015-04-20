@@ -22,7 +22,6 @@ class FullyConnectedLayer(LayerBase):
     def _init_weights(self):
         self.a = None
         self.z = None
-        self.delta = None
 
         # Re-use weights and weights_grad.
         actual_size = self.size+1 if self.bias else self.size
@@ -43,25 +42,19 @@ class FullyConnectedLayer(LayerBase):
         return cm.dot(self.a, self.weights)
 
     def backward_p(self, next_delta):
-        del self.delta
-        self.delta = None
-
         cm.dot(self.a.transpose(), next_delta, target=self.weights_grad)
 
-        # No need to compute delta if layer is the first layer.
+        my_delta = None
         if self.level != 1:
             temp_delta = cm.dot(next_delta, self.weights.transpose())\
                 .mult(self.activation_func.apply_derivative(self.z))
-
             if self.bias:
                 row, col = temp_delta.shape
-                self.delta = cm.empty((row, col-1))
-                temp_delta.get_col_slice(0, col-1, self.delta)
-                del temp_delta
+                my_delta = temp_delta.get_col_slice(0, col-1)
             else:
-                self.delta = temp_delta
+                my_delta = temp_delta
 
-        return self.delta
+        return my_delta
 
     def update(self, lr):
         self.weights.subtract(self.weights_grad.mult(lr))
