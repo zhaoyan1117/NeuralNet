@@ -3,8 +3,8 @@ from __future__ import absolute_import
 import numpy as np
 import cudamat as cm
 
-from ._neural_net_exception import NeuralNetException
 from .util import vectorize_labels, devectorize_labels, shuffle_data_labels
+
 
 class NeuralNet(object):
 
@@ -94,6 +94,8 @@ class NeuralNet(object):
         del cur_data, cur_labels
         del self.cu_data, self.cu_labels
         del self.data, self.labels
+
+        # Return losses.
         return self.losses
 
     def predict(self, data):

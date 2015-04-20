@@ -6,6 +6,7 @@ import numpy as np
 from ._base import LayerBase
 from .._neural_net_exception import NeuralNetException
 
+
 class OutputLayer(LayerBase):
     SUPPORTED_LOSS_FUNC = [
         'MSE',
