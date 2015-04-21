@@ -57,17 +57,18 @@ class OutputLayer(LayerBase):
             raise NeuralNetException('Loss func {0} is not supported.'.format(self.loss_func))
 
     def _compute_loss_MSE(self, y):
-        diff = cm.empty(y.shape)
-        y.subtract(self.a, diff)
-        cm.pow(diff, 2, diff)
-        diff_sum = self._find_sum(diff)
-        size = diff.shape[0]
-        del diff
-        return diff_sum / float(2*size)
+        # Copy to cpu to compute loss due to numerical issue.
+        # This should not be a huge performance bottleneck
+        # since we don't compute loss at every iteration.
+        cpu_y = y.asarray().astype(np.double)
+        cpu_y_hat = self.a.asarray().astype(np.double)
+        diff = cpu_y - cpu_y_hat
+        return np.sum(diff**2) \
+               / float(2*len(diff))
 
     def _compute_loss_CEE(self, y):
         # Copy to cpu to compute loss due to numerical issue.
-        # This should be a huge performance bottleneck
+        # This should not be a huge performance bottleneck
         # since we don't compute loss at every iteration.
         cpu_y = y.asarray().astype(np.double)
         cpu_y_hat = self.a.asarray().astype(np.double)
@@ -79,14 +80,6 @@ class OutputLayer(LayerBase):
                   + (1.0 - cpu_y) * np.log(1.0 - cpu_y_hat)
         return -np.sum(entropy) \
                / float(len(entropy))
-
-    def _find_sum(self, mat):
-        col_sum = mat.sum(axis=0)
-        row_sum = col_sum.sum(axis=1)
-        sum = row_sum.asarray()[0][0]
-        del col_sum
-        del row_sum
-        return sum
 
     def update(self, lr):
         # No weights to update for output layer.
