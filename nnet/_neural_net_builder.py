@@ -51,12 +51,12 @@ class NeuralNetBuilder(object):
                 'Activation function {0} does not exist.'.format(act_func)
             )
 
-    def add_fully_connected_layer(self, size, act_func, sigma=1.0, bias=True):
+    def add_fully_connected_layer(self, size, act_func, sigma=1.0, use_bias=True):
         cur_layer = layer.FullyConnectedLayer(self.cur_level,
                                               size,
                                               self.get_act_func(act_func),
                                               sigma,
-                                              bias)
+                                              use_bias)
 
         if self.layers:
             self.layers[-1].set_next_layer_size(cur_layer.size)
