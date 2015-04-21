@@ -10,5 +10,9 @@ class ActivationFuncBase(object):
         pass
 
     @abstractmethod
+    def apply_scalar(self, s):
+        pass
+
+    @abstractmethod
     def mult_with_derivative(self, target, applied_z):
         pass
