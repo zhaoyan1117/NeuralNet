@@ -98,6 +98,8 @@ class NeuralNet(object):
                 self.cur_epoch += 1
 
                 # Re-shuffle data.
+                self.cu_data.free_device_memory()
+                self.cu_labels.free_device_memory()
                 del self.cu_data, self.cu_labels
                 self.data, self.labels = \
                     shuffle_data_labels(data, vec_labels)
@@ -105,10 +107,19 @@ class NeuralNet(object):
                     cm.CUDAMatrix(self.data), cm.CUDAMatrix(self.labels)
 
         # Free memory.
+        cur_data.free_device_memory()
+        cur_labels.free_device_memory()
         del cur_data, cur_labels
-        del self.data, self.labels
+
+        self.cu_data.free_device_memory()
+        self.cu_labels.free_device_memory()
         del self.cu_data, self.cu_labels
+
+        cu_no_shuffle_data.free_device_memory()
+        cu_no_shuffle_labels.free_device_memory()
         del cu_no_shuffle_data, cu_no_shuffle_labels
+
+        del self.data, self.labels
 
         duration = (time.time() - start) / 60
         print "Training takes {0} minutes.".format(duration)
@@ -120,6 +131,8 @@ class NeuralNet(object):
         cu_data = cm.CUDAMatrix(data)
         cu_predicted = self._forward_p(cu_data)
         vec_predicted = cu_predicted.asarray()
+        cu_data.free_device_memory()
+        cu_predicted.free_device_memory()
         del cu_predicted, cu_data
         return devectorize_labels(vec_predicted)
 
@@ -131,6 +144,7 @@ class NeuralNet(object):
     def _training_score_n_loss(self, cu_data, cu_labels, labels):
         loss, cu_predicted = self._compute_loss(cu_data, cu_labels)
         predictions = devectorize_labels(cu_predicted.asarray())
+        cu_predicted.free_device_memory()
         del cu_predicted
         correct = predictions == labels
         score = np.count_nonzero(correct) / float(len(labels))
