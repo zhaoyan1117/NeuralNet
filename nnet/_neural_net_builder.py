@@ -103,6 +103,7 @@ class NeuralNetBuilder(object):
         return self
 
     def add_print_period(self, print_period):
+        self.print_period = print_period
         self.status_period = print_period
         return self
 
