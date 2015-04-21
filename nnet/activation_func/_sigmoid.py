@@ -22,8 +22,8 @@ class Sigmoid(ActivationFuncBase):
         one_m_sig = cm.empty(self._sig.shape)
         self._sig.mult(-1, one_m_sig)
         one_m_sig.add(1)
-        del one_m_sig
         self._sig.mult(one_m_sig)
+        del one_m_sig
 
         return self._sig
 
