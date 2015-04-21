@@ -66,14 +66,14 @@ class NeuralNet(object):
             )
 
             # Do periodic job.
-            if not self.cur_iteration % self.status_period\
-                    or not self.cur_iteration % self.print_period:
+            if (self.status_period and (not self.cur_iteration % self.status_period))\
+                    or (self.print_period and (not self.cur_iteration % self.print_period)):
 
                 score, loss = self._training_score_n_loss(cu_no_shuffle_data,
                                                           cu_no_shuffle_labels,
                                                           labels)
 
-                if not self.cur_iteration % self.print_period:
+                if self.print_period and (not self.cur_iteration % self.print_period):
                     print "Epoch: {:4d} | " \
                           "Iteration: {:4d} x {print_period} | " \
                           "Score: {:13.12f} | " \
@@ -83,7 +83,7 @@ class NeuralNet(object):
                                 score, loss,
                                 print_period=self.print_period)
 
-                if not self.cur_iteration % self.status_period:
+                if self.status_period and (not self.cur_iteration % self.status_period):
                     self.losses = np.append(self.losses,
                                             [[self.cur_epoch, self.cur_iteration, score, loss]],
                                             axis=0)
