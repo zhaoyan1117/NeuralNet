@@ -24,7 +24,7 @@ class NeuralNet(object):
     def train(self, data, labels):
         start = time.time()
 
-        self.losses = np.empty((0, 4))
+        self.losses = np.empty((0, 5))
 
         self.klasses = np.unique(labels)
         vec_labels = vectorize_labels(labels, len(self.klasses))
@@ -72,20 +72,22 @@ class NeuralNet(object):
                 score, loss = self._training_score_n_loss(cu_no_shuffle_data,
                                                           cu_no_shuffle_labels,
                                                           labels)
+                time_elapsed = time.time() - start
 
                 if self.print_period and (not self.cur_iteration % self.print_period):
-                    print "Epoch: {:4d} | " \
-                          "Iteration: {:4d} x {print_period} | " \
+                    print "Epoch: {:3d} | " \
+                          "Iteration: {:3d} x {print_period} | " \
                           "Score: {:13.12f} | " \
-                          "Loss: {:13.10f}"\
+                          "Loss: {:13.10f} | " \
+                          "Time elapsed: {:3.2f} minutes" \
                         .format(self.cur_epoch,
                                 self.cur_iteration / self.print_period,
-                                score, loss,
+                                score, loss, time_elapsed/60,
                                 print_period=self.print_period)
 
                 if self.status_period and (not self.cur_iteration % self.status_period):
                     self.losses = np.append(self.losses,
-                                            [[self.cur_epoch, self.cur_iteration, score, loss]],
+                                            [[self.cur_epoch, self.cur_iteration, score, loss, time_elapsed]],
                                             axis=0)
 
             # Update cur_iteration and data index.
