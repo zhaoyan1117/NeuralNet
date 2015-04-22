@@ -95,7 +95,7 @@ class NeuralNet(object):
             self.cur_iteration += 1
 
             # Finished one epoch.
-            if data_i >= len(self.data):
+            if data_i + self.batch_size > len(self.data):
                 data_i = 0
                 self.cur_epoch += 1
 

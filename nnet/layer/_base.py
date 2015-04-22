@@ -22,6 +22,10 @@ class LayerBase(object):
         pass
 
     def _free_mem(self):
+        if hasattr(self, 'a'):
+            if self.a is not None:
+                self.a.free_device_memory()
+            del self.a
         if hasattr(self, 'next_z'):
             if self.next_z is not None:
                 self.next_z.free_device_memory()

@@ -9,13 +9,13 @@ from ._base import ActivationFuncBase
 
 class Tanh(ActivationFuncBase):
 
-    def apply(self, z):
-        z.apply_tanh()
+    def apply(self, z, a):
+        z.apply_tanh(a)
 
     def apply_scalar(self, s):
         return math.tanh(s)
 
-    def mult_with_derivative(self, target, tanh_z):
-        cm.pow(tanh_z, 2, tanh_z)
-        tanh_z.mult(-1).add(1)
-        target.mult(tanh_z)
+    def mult_with_derivative(self, target, z, a):
+        cm.pow(a, 2, a)
+        a.mult(-1).add(1)
+        target.mult(a)
