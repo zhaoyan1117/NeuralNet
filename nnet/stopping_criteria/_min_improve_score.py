@@ -25,20 +25,20 @@ class MinImproveScore(StoppingCriteriaBase):
         else:
             self.last_update = latest_update
 
-            cur_score = np.mean(
-                net.losses[latest_update-self.k:latest_update, 2]
+            cur_loss = np.mean(
+                net.losses[latest_update-self.k:latest_update, 3]
             )
 
-            last_score = np.mean(
-                net.losses[latest_update-2*self.k:latest_update-self.k, 2]
+            last_loss = np.mean(
+                net.losses[latest_update-2*self.k:latest_update-self.k, 3]
             )
 
-            if cur_score - last_score > self.threshold:
+            if last_loss - cur_loss > self.threshold:
                 return False
             else:
                 print('Stop at epoch {epoch}, '
                       'iteration {iteration}\n'
-                      'average score of last {k} epochs '
+                      'average loss of last {k} epochs '
                       'improved smaller than {threshold}\n'
                       'Latest score : {latest_score} | '
                       'Latest loss  : {latest_loss}'

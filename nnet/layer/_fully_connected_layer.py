@@ -25,6 +25,8 @@ class FullyConnectedLayer(LayerBase):
         self.weights = cm.CUDAMatrix(
             self.sigma * np.random.randn(self.size, self.next_size)
         )
+        self.weights_transpose = \
+            cm.empty((self.weights.shape[1], self.weights.shape[0]))
         self.weights_grad = cm.empty(self.weights.shape)
 
         if self.use_bias:
@@ -61,17 +63,15 @@ class FullyConnectedLayer(LayerBase):
             next_delta.sum(0, self.biases_grad)
 
         self.my_delta = None
+
         if self.level != 1:
-            weights_transpose = self.weights.transpose()
-            self.my_delta = cm.dot(next_delta, weights_transpose)
-            self.activation_func\
-                .mult_with_derivative(self.my_delta, self.z)
-            weights_transpose.free_device_memory()
-            del weights_transpose
+            self.weights.transpose(self.weights_transpose)
+            self.my_delta = cm.dot(next_delta, self.weights_transpose)
+            self.activation_func.mult_with_derivative(self.my_delta, self.z)
 
         return self.my_delta
 
     def update(self, lr):
-        self.weights.subtract(self.weights_grad.mult(lr))
+        self.weights.subtract_mult(self.weights_grad, lr)
         if self.use_bias:
-            self.biases.subtract(self.biases_grad.mult(lr))
+            self.biases.subtract_mult(self.biases_grad, lr)
