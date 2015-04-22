@@ -8,6 +8,10 @@ from ._base import ActivationFuncBase
 
 
 class Softplus(ActivationFuncBase):
+    """
+    WARNING: Softplus has some numerical issue here,
+             try to use ReLU.
+    """
 
     def apply(self, z, a):
         cm.exp(z, a)

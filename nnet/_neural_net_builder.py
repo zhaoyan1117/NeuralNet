@@ -48,6 +48,8 @@ class NeuralNetBuilder(object):
             return af.Tanh()
         elif act_func == 'Softplus':
             return af.Softplus()
+        elif act_func == 'ReLU':
+            return af.ReLU()
         else:
             raise NeuralNetException(
                 'Activation function {0} does not exist.'.format(act_func)
