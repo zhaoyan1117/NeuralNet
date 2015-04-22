@@ -6,7 +6,7 @@ class ActivationFuncBase(object):
     __metaclass__ = ABCMeta
 
     @abstractmethod
-    def apply(self, z, a):
+    def apply(self, z):
         pass
 
     @abstractmethod
@@ -14,5 +14,5 @@ class ActivationFuncBase(object):
         pass
 
     @abstractmethod
-    def mult_with_derivative(self, target, z, a):
+    def mult_with_derivative(self, target, activated_z):
         pass

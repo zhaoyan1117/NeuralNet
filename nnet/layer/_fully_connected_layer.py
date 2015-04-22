@@ -38,9 +38,8 @@ class FullyConnectedLayer(LayerBase):
         self._free_mem()
 
         self.z = z
-        self.a = cm.empty(self.z.shape)
-        self.activation_func.apply(self.z, self.a)
-        self.next_z = cm.dot(self.a, self.weights)
+        self.activation_func.apply(self.z)
+        self.next_z = cm.dot(self.z, self.weights)
 
         if self.use_bias:
             self.biases.mult(
@@ -52,7 +51,7 @@ class FullyConnectedLayer(LayerBase):
 
     def backward_p(self, next_delta):
         # Compute weights grad.
-        a_transpose = self.a.transpose()
+        a_transpose = self.z.transpose()
         cm.dot(a_transpose, next_delta, target=self.weights_grad)
         a_transpose.free_device_memory()
         del a_transpose
@@ -66,7 +65,7 @@ class FullyConnectedLayer(LayerBase):
         if self.level != 1:
             self.weights.transpose(self.weights_transpose)
             self.my_delta = cm.dot(next_delta, self.weights_transpose)
-            self.activation_func.mult_with_derivative(self.my_delta, self.z, self.a)
+            self.activation_func.mult_with_derivative(self.my_delta, self.z)
 
         return self.my_delta
 

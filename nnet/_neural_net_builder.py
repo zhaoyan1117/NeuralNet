@@ -46,8 +46,6 @@ class NeuralNetBuilder(object):
             return af.Sigmoid()
         elif act_func == 'Tanh':
             return af.Tanh()
-        elif act_func == 'Softplus':
-            return af.Softplus()
         elif act_func == 'ReLU':
             return af.ReLU()
         else:
