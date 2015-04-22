@@ -46,6 +46,8 @@ class NeuralNetBuilder(object):
             return af.Sigmoid()
         elif act_func == 'Tanh':
             return af.Tanh()
+        elif act_func == 'Softplus':
+            return af.Softplus()
         else:
             raise NeuralNetException(
                 'Activation function {0} does not exist.'.format(act_func)

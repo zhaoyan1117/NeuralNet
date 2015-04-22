@@ -5,7 +5,7 @@ import numpy as np
 
 from ._base import LayerBase
 from .._neural_net_exception import NeuralNetException
-
+import nnet.activation_func as af
 
 class OutputLayer(LayerBase):
     SUPPORTED_LOSS_FUNC = [
@@ -13,13 +13,23 @@ class OutputLayer(LayerBase):
         'CEE'
     ]
 
+    SUPPORTED_CEE_ACT_FUNC = [
+        af.Sigmoid
+    ]
+
     def __init__(self, level, size, activation_func, loss_func):
         self.level = level
         self.size = size
-        self.activation_func = activation_func
+
         self.loss_func = loss_func
         if self.loss_func not in OutputLayer.SUPPORTED_LOSS_FUNC:
             raise NeuralNetException('Loss func {0} is not supported.'.format(self.loss_func))
+
+        self.activation_func = activation_func
+        if self.loss_func == 'CEE' \
+                and (not any([type(activation_func) == f for f in OutputLayer.SUPPORTED_CEE_ACT_FUNC])):
+            raise NeuralNetException('Activation func {0} is not supported '
+                                     'with loss func CEE.'.format(self.activation_func))
 
     def set_next_layer_size(self, next_size):
         # Output layer does not have next layer.
@@ -42,6 +52,8 @@ class OutputLayer(LayerBase):
             self.activation_func\
                 .mult_with_derivative(self.my_delta, self.z, self.a)
         elif self.loss_func == 'CEE':
+            # Currently only support Sigmoid as loss function
+            # for output layer with loss function CEE.
             pass
         else:
             raise NeuralNetException('Loss func {0} is not supported.'.format(self.loss_func))
