@@ -7,6 +7,7 @@ from ._base import LayerBase
 from .._neural_net_exception import NeuralNetException
 import nnet.activation_func as af
 
+
 class OutputLayer(LayerBase):
     SUPPORTED_LOSS_FUNC = [
         'MSE',
