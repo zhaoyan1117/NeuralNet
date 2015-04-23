@@ -32,3 +32,4 @@ class LayerBase(object):
     def prediction_clean(self):
         if hasattr(self, 'predict_z'):
             self.predict_z.free_device_memory()
+            del self.predict_z
