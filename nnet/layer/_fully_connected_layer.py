@@ -97,8 +97,7 @@ class FullyConnectedLayer(LayerBase):
     def backward_p(self, next_delta):
         # Compute weights grad.
         self.z.transpose(self.a_transpose)
-        cm.dot(self.a_transpose, next_delta,
-               target=self.weights_grad)
+        cm.dot(self.a_transpose, next_delta, self.weights_grad)
 
         # Compute biases grad.
         if self.use_bias:

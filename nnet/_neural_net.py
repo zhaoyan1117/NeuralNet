@@ -150,7 +150,6 @@ class NeuralNet(object):
         for l in self.layers:
             cur_z = l.predict(cur_z)
 
-        # yield result
         yield cur_z
 
         # free memory
