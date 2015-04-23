@@ -36,7 +36,7 @@ class OutputLayer(LayerBase):
         # Output layer does not have next layer.
         pass
 
-    def init_weights(self, batch_size):
+    def init(self, batch_size):
         self.my_delta = cm.empty((batch_size, self.size))
 
     def forward_p(self, z):

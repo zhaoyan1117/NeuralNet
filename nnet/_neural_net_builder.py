@@ -31,7 +31,7 @@ class NeuralNetBuilder(object):
             raise NeuralNetException('No stopping criteria.')
         else:
             for l in self.layers:
-                l.init_weights(self.batch_size)
+                l.init(self.batch_size)
 
             return NeuralNet(self.batch_size,
                              self.lr_func,

@@ -18,7 +18,7 @@ class FullyConnectedLayer(LayerBase):
     def set_next_layer_size(self, next_size):
         self.next_size = next_size
 
-    def init_weights(self, batch_size):
+    def init(self, batch_size):
         # Weights.
         self.weights = cm.CUDAMatrix(
             self.sigma * np.random.randn(self.size, self.next_size)

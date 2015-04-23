@@ -10,7 +10,7 @@ class LayerBase(object):
         pass
 
     @abstractmethod
-    def init_weights(self, batch_size):
+    def init(self, batch_size):
         pass
 
     @abstractmethod
