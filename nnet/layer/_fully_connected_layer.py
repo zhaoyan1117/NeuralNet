@@ -8,18 +8,38 @@ from ._base import LayerBase
 
 class FullyConnectedLayer(LayerBase):
 
-    def __init__(self, level, size, activation_func, sigma=1.0, use_bias=True):
+    def __init__(self, level, size, activation_func,
+                 sigma=1.0, use_bias=True, **kwargs):
         self.level = level
         self.size = size
         self.activation_func = activation_func
         self.use_bias = use_bias
         self.sigma = sigma
 
+        # Regularization techniques.
+        self.use_dropout = kwargs.get('use_dropout', False)
+        if self.use_dropout:
+            self.dropout_p = kwargs.get('dropout_p', 0.5)
+
     def set_next_layer_size(self, next_size):
         self.next_size = next_size
 
     def init(self, batch_size):
         # Weights.
+        self._init_weights()
+
+        # Bias.
+        if self.use_bias:
+            self._init_bias()
+
+        # Propagation.
+        self._init_params(batch_size)
+
+        # Dropout mask.
+        if self.use_dropout:
+            self._init_dropout_mask(batch_size)
+
+    def _init_weights(self):
         self.weights = cm.CUDAMatrix(
             self.sigma * np.random.randn(self.size, self.next_size)
         )
@@ -27,15 +47,15 @@ class FullyConnectedLayer(LayerBase):
             cm.empty((self.weights.shape[1], self.weights.shape[0]))
         self.weights_grad = cm.empty(self.weights.shape)
 
-        # Bias.
-        if self.use_bias:
-            self.biases = cm.CUDAMatrix(
-                self.sigma * np.random.randn(1, self.next_size)
-            )
-            self.active_biases = cm.empty(self.biases.shape)
-            self.biases_grad = cm.empty(self.biases.shape)
+    def _init_bias(self):
+        assert self.use_bias
+        self.biases = cm.CUDAMatrix(
+            self.sigma * np.random.randn(1, self.next_size)
+        )
+        self.active_biases = cm.empty(self.biases.shape)
+        self.biases_grad = cm.empty(self.biases.shape)
 
-        # Propagation.
+    def _init_params(self, batch_size):
         self.next_z = cm.empty((batch_size, self.next_size))
         self.a_transpose = cm.empty((self.size, batch_size))
 
@@ -44,9 +64,21 @@ class FullyConnectedLayer(LayerBase):
         else:
             self.my_delta = None
 
+    def _init_dropout_mask(self, batch_size):
+        self.dropout_mask = cm.empty((batch_size, self.size))
+
     def forward_p(self, z):
         self.z = z
         self.activation_func.apply(self.z)
+
+        # Dropout regularization.
+        if self.use_dropout:
+            self.dropout_mask\
+                .fill_with_rand()\
+                .less_than(self.dropout_p)\
+                .divide(self.dropout_p)
+            self.z.mult(self.dropout_mask)
+
         cm.dot(self.z, self.weights, self.next_z)
 
         if self.use_bias:

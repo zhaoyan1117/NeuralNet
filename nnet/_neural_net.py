@@ -12,6 +12,7 @@ class NeuralNet(object):
 
     def __init__(self, batch_size, lr_func, stopping_c, layers,
                  status_period=10000, **kwargs):
+        cm.CUDAMatrix.init_random(int(time.time()))
         self.batch_size = batch_size
         self.lr_func = lr_func
         self.stopping_c = stopping_c
