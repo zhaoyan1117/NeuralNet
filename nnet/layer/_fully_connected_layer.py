@@ -1,5 +1,7 @@
 from __future__ import absolute_import, division
 
+import math
+
 import numpy as np
 import cudamat as cm
 
@@ -9,7 +11,7 @@ from ._base import LayerBase
 class FullyConnectedLayer(LayerBase):
 
     def __init__(self, level, size, activation_func,
-                 sigma=1.0, use_bias=True, **kwargs):
+                 sigma='c', use_bias=True, **kwargs):
         self.level = level
         self.size = size
         self.activation_func = activation_func
@@ -40,11 +42,14 @@ class FullyConnectedLayer(LayerBase):
             self._init_dropout_mask(batch_size)
 
     def _init_weights(self):
+        var = math.sqrt(2.0/self.size) if self.sigma == 'c' else self.sigma
         self.weights = cm.CUDAMatrix(
-            self.sigma * np.random.randn(self.size, self.next_size)
+            var * np.random.randn(self.size, self.next_size)
         )
+
         self.weights_transpose = \
             cm.empty((self.weights.shape[1], self.weights.shape[0]))
+
         self.weights_grad = cm.empty(self.weights.shape)
 
     def _init_bias(self):

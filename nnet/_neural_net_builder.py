@@ -54,7 +54,7 @@ class NeuralNetBuilder(object):
             )
 
     def add_fully_connected_layer(self, size, act_func,
-                                  sigma=1.0, use_bias=True, **kwargs):
+                                  sigma='c', use_bias=True, **kwargs):
         cur_layer = layer.FullyConnectedLayer(self.cur_level,
                                               size,
                                               self.get_act_func(act_func),
