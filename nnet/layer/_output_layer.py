@@ -60,6 +60,15 @@ class OutputLayer(LayerBase):
 
         return self.my_delta
 
+    def update(self, lr):
+        # No weights to update for output layer.
+        pass
+
+    def predict(self, z):
+        self.activation_func.apply(z)
+        self.predict_z = z
+        return self.predict_z
+
     def compute_loss(self, y):
         if self.loss_func == 'MSE':
             return self._compute_loss_MSE(y)
@@ -73,7 +82,7 @@ class OutputLayer(LayerBase):
         # This should not be a huge performance bottleneck
         # since we don't compute loss at every iteration.
         cpu_y = y.asarray().astype(np.double)
-        cpu_y_hat = self.z.asarray().astype(np.double)
+        cpu_y_hat = self.predict_z.asarray().astype(np.double)
         diff = cpu_y - cpu_y_hat
         return np.sum(diff**2) \
                / float(2*len(diff))
@@ -83,7 +92,7 @@ class OutputLayer(LayerBase):
         # This should not be a huge performance bottleneck
         # since we don't compute loss at every iteration.
         cpu_y = y.asarray().astype(np.double)
-        cpu_y_hat = self.z.asarray().astype(np.double)
+        cpu_y_hat = self.predict_z.asarray().astype(np.double)
 
         cpu_y_hat[np.nonzero(cpu_y_hat==0)] = 1e-8
         cpu_y_hat[np.nonzero(cpu_y_hat==1)] = 1-1e-8
@@ -92,7 +101,3 @@ class OutputLayer(LayerBase):
                   + (1.0 - cpu_y) * np.log(1.0 - cpu_y_hat)
         return -np.sum(entropy) \
                / float(len(entropy))
-
-    def update(self, lr):
-        # No weights to update for output layer.
-        return None

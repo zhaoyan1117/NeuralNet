@@ -21,14 +21,18 @@ class LayerBase(object):
     def update(self, epoch):
         pass
 
+    @abstractmethod
+    def predict(self, z):
+        pass
+
+    def prediction_clean(self):
+        if hasattr(self, 'predict_z'):
+            self.predict_z.free_device_memory()
+            del self.predict_z
+
     def _free_mem(self):
-        if hasattr(self, 'a'):
-            if self.a is not None:
-                self.a.free_device_memory()
-            del self.a
         if hasattr(self, 'next_z'):
-            if self.next_z is not None:
-                self.next_z.free_device_memory()
+            self.next_z.free_device_memory()
             del self.next_z
         if hasattr(self, 'my_delta'):
             if self.my_delta is not None:

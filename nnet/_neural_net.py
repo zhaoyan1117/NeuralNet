@@ -131,12 +131,33 @@ class NeuralNet(object):
 
     def predict(self, data):
         cu_data = cm.CUDAMatrix(data)
-        cu_predicted = self._forward_p(cu_data)
+
+        # Predict.
+        cu_predicted = self._predict_forward(cu_data)
         vec_predicted = cu_predicted.asarray()
+
+        # Free memory.
         cu_data.free_device_memory()
-        cu_predicted.free_device_memory()
-        del cu_predicted, cu_data
+        del cu_data
+        self._prediction_clean()
+
         return devectorize_labels(vec_predicted)
+
+    def _predict_forward(self, cu_data):
+        """
+        CAUTION:
+        self._prediction_clean must be called after calling this method.
+
+        TODO: change this to a context manager.
+        """
+        cur_z = cu_data
+        for l in self.layers:
+            cur_z = l.predict(cur_z)
+        return cur_z
+
+    def _prediction_clean(self):
+        for l in self.layers:
+            l.prediction_clean()
 
     def score(self, data, labels):
         predictions = self.predict(data)
@@ -144,19 +165,18 @@ class NeuralNet(object):
         return np.count_nonzero(correct) / float(len(labels))
 
     def _training_score_n_loss(self, cu_data, cu_labels, labels):
-        loss, cu_predicted = self._compute_loss(cu_data, cu_labels)
+        cu_predicted = self._predict_forward(cu_data)
+        loss = self.output_layer.compute_loss(cu_labels)
         predictions = devectorize_labels(cu_predicted.asarray())
-        cu_predicted.free_device_memory()
-        del cu_predicted
         correct = predictions == labels
         score = np.count_nonzero(correct) / float(len(labels))
+        self._prediction_clean()
         return score, loss
 
     def _forward_p(self, data):
         cur_z = data
         for l in self.layers:
             cur_z = l.forward_p(cur_z)
-        return cur_z
 
     def _backward_p(self, y):
         delta_or_y = y
@@ -167,9 +187,6 @@ class NeuralNet(object):
         for l in self.layers:
             l.update(lr)
 
-    def _compute_loss(self, cu_data, cu_labels):
-        cu_predicted = self._forward_p(cu_data)
-        return (
-            self.layers[-1].compute_loss(cu_labels),
-            cu_predicted
-        )
+    @property
+    def output_layer(self):
+        return self.layers[-1]
