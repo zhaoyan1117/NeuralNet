@@ -36,15 +36,15 @@ class OutputLayer(LayerBase):
         # Output layer does not have next layer.
         pass
 
-    def forward_p(self, z):
-        self._free_mem()
+    def init_weights(self, batch_size):
+        self.my_delta = cm.empty((batch_size, self.size))
 
+    def forward_p(self, z):
         self.z = z
         self.activation_func.apply(self.z)
         return self.z
 
     def backward_p(self, y):
-        self.my_delta = cm.empty(y.shape)
         self.z.subtract(y, self.my_delta)
         self.my_delta.divide(float(self.my_delta.shape[0]))
 

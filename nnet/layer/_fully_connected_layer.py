@@ -17,9 +17,9 @@ class FullyConnectedLayer(LayerBase):
 
     def set_next_layer_size(self, next_size):
         self.next_size = next_size
-        self._init_weights()
 
-    def _init_weights(self):
+    def init_weights(self, batch_size):
+        # Weights.
         self.weights = cm.CUDAMatrix(
             self.sigma * np.random.randn(self.size, self.next_size)
         )
@@ -27,6 +27,7 @@ class FullyConnectedLayer(LayerBase):
             cm.empty((self.weights.shape[1], self.weights.shape[0]))
         self.weights_grad = cm.empty(self.weights.shape)
 
+        # Bias.
         if self.use_bias:
             self.biases = cm.CUDAMatrix(
                 self.sigma * np.random.randn(1, self.next_size)
@@ -34,12 +35,19 @@ class FullyConnectedLayer(LayerBase):
             self.active_biases = cm.empty(self.biases.shape)
             self.biases_grad = cm.empty(self.biases.shape)
 
-    def forward_p(self, z):
-        self._free_mem()
+        # Propagation.
+        self.next_z = cm.empty((batch_size, self.next_size))
+        self.a_transpose = cm.empty((self.size, batch_size))
 
+        if self.level != 1:
+            self.my_delta = cm.empty((batch_size, self.size))
+        else:
+            self.my_delta = None
+
+    def forward_p(self, z):
         self.z = z
         self.activation_func.apply(self.z)
-        self.next_z = cm.dot(self.z, self.weights)
+        cm.dot(self.z, self.weights, self.next_z)
 
         if self.use_bias:
             self.biases.mult(
@@ -51,20 +59,17 @@ class FullyConnectedLayer(LayerBase):
 
     def backward_p(self, next_delta):
         # Compute weights grad.
-        a_transpose = self.z.transpose()
-        cm.dot(a_transpose, next_delta, target=self.weights_grad)
-        a_transpose.free_device_memory()
-        del a_transpose
+        self.z.transpose(self.a_transpose)
+        cm.dot(self.a_transpose, next_delta,
+               target=self.weights_grad)
 
         # Compute biases grad.
         if self.use_bias:
             next_delta.sum(0, self.biases_grad)
 
-        self.my_delta = None
-
         if self.level != 1:
             self.weights.transpose(self.weights_transpose)
-            self.my_delta = cm.dot(next_delta, self.weights_transpose)
+            cm.dot(next_delta, self.weights_transpose, self.my_delta)
             self.activation_func.mult_with_derivative(self.my_delta, self.z)
 
         return self.my_delta
