@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import time
+from contextlib import contextmanager
 
 import numpy as np
 import cudamat as cm
@@ -128,44 +129,40 @@ class NeuralNet(object):
         cu_data = cm.CUDAMatrix(data)
 
         # Predict.
-        cu_predicted = self._predict_forward(cu_data)
-        vec_predicted = cu_predicted.asarray()
+        with self._predict_forward(cu_data) as cu_predicted:
+            predicted = devectorize_labels(cu_predicted.asarray())
 
         # Free memory.
         cu_data.free_device_memory()
         del cu_data
-        self._prediction_clean()
 
-        return devectorize_labels(vec_predicted)
-
-    def _predict_forward(self, cu_data):
-        """
-        CAUTION:
-        self._prediction_clean must be called after calling this method.
-
-        TODO: change this to a context manager.
-        """
-        cur_z = cu_data
-        for l in self.layers:
-            cur_z = l.predict(cur_z)
-        return cur_z
-
-    def _prediction_clean(self):
-        for l in self.layers:
-            l.prediction_clean()
+        return predicted
 
     def score(self, data, labels):
         predictions = self.predict(data)
         correct = predictions == labels
         return np.count_nonzero(correct) / float(len(labels))
 
+    @contextmanager
+    def _predict_forward(self, cu_data):
+        # predict
+        cur_z = cu_data
+        for l in self.layers:
+            cur_z = l.predict(cur_z)
+
+        # yield result
+        yield cur_z
+
+        # free memory
+        for l in self.layers:
+            l.prediction_clean()
+
     def _training_score_n_loss(self, cu_data, cu_labels, labels):
-        cu_predicted = self._predict_forward(cu_data)
-        loss = self.output_layer.compute_loss(cu_labels)
-        predictions = devectorize_labels(cu_predicted.asarray())
-        correct = predictions == labels
-        score = np.count_nonzero(correct) / float(len(labels))
-        self._prediction_clean()
+        with self._predict_forward(cu_data) as cu_predicted:
+            loss = self.output_layer.compute_loss(cu_labels)
+            predictions = devectorize_labels(cu_predicted.asarray())
+            correct = predictions == labels
+            score = np.count_nonzero(correct) / float(len(labels))
         return score, loss
 
     def _forward_p(self, data):
