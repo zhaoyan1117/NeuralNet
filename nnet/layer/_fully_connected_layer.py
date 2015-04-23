@@ -50,7 +50,7 @@ class FullyConnectedLayer(LayerBase):
     def _init_bias(self):
         assert self.use_bias
         self.biases = cm.CUDAMatrix(
-            self.sigma * np.random.randn(1, self.next_size)
+            np.zeros((1, self.next_size))
         )
         self.active_biases = cm.empty(self.biases.shape)
         self.biases_grad = cm.empty(self.biases.shape)
