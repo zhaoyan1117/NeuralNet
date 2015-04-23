@@ -10,16 +10,13 @@ from .util import vectorize_labels, devectorize_labels, shuffle_data_labels
 
 class NeuralNet(object):
 
-    def __init__(self, batch_size, lr_func, stopping_c, layers, **kwargs):
+    def __init__(self, batch_size, lr_func, stopping_c, layers,
+                 status_period=10000, **kwargs):
         self.batch_size = batch_size
         self.lr_func = lr_func
         self.stopping_c = stopping_c
         self.layers = layers
-
-        self.print_period = kwargs.get('print_period',
-                                       10000)
-        self.status_period = kwargs.get('status_period',
-                                        self.print_period)
+        self.status_period = status_period
 
     def train(self, data, labels):
         start = time.time()
@@ -66,29 +63,26 @@ class NeuralNet(object):
             )
 
             # Do periodic job.
-            if (self.status_period and (not self.cur_iteration % self.status_period))\
-                    or (self.print_period and (not self.cur_iteration % self.print_period)):
+            if not self.cur_iteration % self.status_period:
+                time_elapsed = time.time() - start
 
                 score, loss = self._training_score_n_loss(cu_no_shuffle_data,
                                                           cu_no_shuffle_labels,
                                                           labels)
-                time_elapsed = time.time() - start
 
-                if self.print_period and (not self.cur_iteration % self.print_period):
-                    print "Epoch: {:3d} | " \
-                          "Iteration: {:3d} x {print_period} | " \
-                          "Score: {:13.12f} | " \
-                          "Loss: {:13.10f} | " \
-                          "Time elapsed: {:3.2f} minutes" \
-                        .format(self.cur_epoch,
-                                self.cur_iteration / self.print_period,
-                                score, loss, time_elapsed/60,
-                                print_period=self.print_period)
+                print "Epoch: {:3d} | " \
+                      "Iteration: {:3d} x {status_period} | " \
+                      "Score: {:13.12f} | " \
+                      "Loss: {:13.10f} | " \
+                      "Time elapsed: {:3.2f} minutes" \
+                    .format(self.cur_epoch,
+                            self.cur_iteration / self.status_period,
+                            score, loss, time_elapsed/60,
+                            status_period=self.status_period)
 
-                if self.status_period and (not self.cur_iteration % self.status_period):
-                    self.losses = np.append(self.losses,
-                                            [[self.cur_epoch, self.cur_iteration, score, loss, time_elapsed]],
-                                            axis=0)
+                self.losses = np.append(self.losses,
+                                        [[self.cur_epoch, self.cur_iteration, score, loss, time_elapsed]],
+                                        axis=0)
 
             # Update cur_iteration and data index.
             data_i += self.batch_size
