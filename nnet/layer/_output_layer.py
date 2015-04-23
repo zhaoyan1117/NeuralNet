@@ -37,9 +37,10 @@ class OutputLayer(LayerBase):
         pass
 
     def init(self, batch_size):
+        self.batch_size = batch_size
         self.my_delta = cm.empty((batch_size, self.size))
 
-    def forward_p(self, z):
+    def forward_p(self, z, predict=False):
         self.z = z
         self.activation_func.apply(self.z)
         return self.z
@@ -64,11 +65,6 @@ class OutputLayer(LayerBase):
         # No weights to update for output layer.
         pass
 
-    def predict(self, z):
-        self.activation_func.apply(z)
-        self.predict_z = z
-        return self.predict_z
-
     def compute_loss(self, y):
         if self.loss_func == 'MSE':
             return self._compute_loss_MSE(y)
@@ -82,17 +78,17 @@ class OutputLayer(LayerBase):
         # This should not be a huge performance bottleneck
         # since we don't compute loss at every iteration.
         cpu_y = y.asarray().astype(np.double)
-        cpu_y_hat = self.predict_z.asarray().astype(np.double)
+        cpu_y_hat = self.z.asarray().astype(np.double)
         diff = cpu_y - cpu_y_hat
         return np.sum(diff**2) \
-               / float(2*len(diff))
+               / float(2*self.batch_size)
 
     def _compute_loss_CEE(self, y):
         # Copy to cpu to compute loss due to numerical issue.
         # This should not be a huge performance bottleneck
         # since we don't compute loss at every iteration.
         cpu_y = y.asarray().astype(np.double)
-        cpu_y_hat = self.predict_z.asarray().astype(np.double)
+        cpu_y_hat = self.z.asarray().astype(np.double)
 
         cpu_y_hat[np.nonzero(cpu_y_hat==0)] = 1e-8
         cpu_y_hat[np.nonzero(cpu_y_hat==1)] = 1-1e-8
@@ -100,4 +96,4 @@ class OutputLayer(LayerBase):
         entropy = cpu_y * np.log(cpu_y_hat) \
                   + (1.0 - cpu_y) * np.log(1.0 - cpu_y_hat)
         return -np.sum(entropy) \
-               / float(len(entropy))
+               / float(self.batch_size)

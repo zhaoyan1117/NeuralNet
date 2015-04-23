@@ -1,7 +1,6 @@
 from __future__ import absolute_import
 
 import time
-from contextlib import contextmanager
 
 import numpy as np
 import cudamat as cm
@@ -14,6 +13,7 @@ class NeuralNet(object):
     def __init__(self, batch_size, lr_func, stopping_c, layers,
                  status_period=10000, **kwargs):
         cm.CUDAMatrix.init_random(int(time.time()))
+        # TODO: Currently only support batch size divide data size.
         self.batch_size = batch_size
         self.lr_func = lr_func
         self.stopping_c = stopping_c
@@ -26,19 +26,17 @@ class NeuralNet(object):
         self.losses = np.empty((0, 5))
 
         self.klasses = np.unique(labels)
-        vec_labels = vectorize_labels(labels, len(self.klasses))
-
-        cu_no_shuffle_data = cm.CUDAMatrix(data)
-        cu_no_shuffle_labels = cm.CUDAMatrix(vec_labels)
 
         # Shuffle input data and labels.
-        self.data, self.labels = \
-            shuffle_data_labels(data, vec_labels)
-        self.cu_data, self.cu_labels = \
-            cm.CUDAMatrix(self.data), cm.CUDAMatrix(self.labels)
+        self.shuffled_data, self.shuffled_labels = \
+            shuffle_data_labels(data, labels)
+        self.shuffled_vec_labels = \
+            vectorize_labels(self.shuffled_labels, len(self.klasses))
+        self.cu_data, self.cu_vec_labels = \
+            cm.CUDAMatrix(self.shuffled_data), cm.CUDAMatrix(self.shuffled_vec_labels)
 
-        cur_data = cm.empty((self.batch_size, self.cu_data.shape[1]))
-        cur_labels = cm.empty((self.batch_size, self.cu_labels.shape[1]))
+        self.cur_data = cm.empty((self.batch_size, self.cu_data.shape[1]))
+        self.cur_vec_labels = cm.empty((self.batch_size, self.cu_vec_labels.shape[1]))
 
         data_i = 0
         self.cur_epoch = 0
@@ -46,17 +44,17 @@ class NeuralNet(object):
 
         while not self.stopping_c.stop(self):
             # Slice data and labels for this epoch.
-            self.cu_data.get_row_slice(data_i, data_i+self.batch_size, cur_data)
-            self.cu_labels.get_row_slice(data_i, data_i+self.batch_size, cur_labels)
+            self.cu_data.get_row_slice(data_i, data_i+self.batch_size, self.cur_data)
+            self.cu_vec_labels.get_row_slice(data_i, data_i+self.batch_size, self.cur_vec_labels)
 
             # Forward propagation.
             self._forward_p(
-                cur_data
+                self.cur_data
             )
 
             # Backward propagation.
             self._backward_p(
-                cur_labels
+                self.cur_vec_labels
             )
 
             # Gradient descent update.
@@ -68,9 +66,7 @@ class NeuralNet(object):
             if not self.cur_iteration % self.status_period:
                 time_elapsed = time.time() - start
 
-                score, loss = self._training_score_n_loss(cu_no_shuffle_data,
-                                                          cu_no_shuffle_labels,
-                                                          labels)
+                score, loss = self._compute_training_score_n_loss()
 
                 print "Epoch: {:3d} | " \
                       "Iteration: {:3d} x {status_period} | " \
@@ -91,33 +87,32 @@ class NeuralNet(object):
             self.cur_iteration += 1
 
             # Finished one epoch.
-            if data_i + self.batch_size > len(self.data):
+            if data_i + self.batch_size > len(self.shuffled_data):
                 data_i = 0
                 self.cur_epoch += 1
 
                 # Re-shuffle data.
                 self.cu_data.free_device_memory()
-                self.cu_labels.free_device_memory()
-                del self.cu_data, self.cu_labels
-                self.data, self.labels = \
-                    shuffle_data_labels(data, vec_labels)
-                self.cu_data, self.cu_labels = \
-                    cm.CUDAMatrix(self.data), cm.CUDAMatrix(self.labels)
+                self.cu_vec_labels.free_device_memory()
+                del self.cu_data, self.cu_vec_labels
+                self.shuffled_data, self.shuffled_labels = \
+                    shuffle_data_labels(data, labels)
+                self.shuffled_vec_labels = \
+                    vectorize_labels(self.shuffled_labels, len(self.klasses))
+                self.cu_data, self.cu_vec_labels = \
+                    cm.CUDAMatrix(self.shuffled_data), cm.CUDAMatrix(self.shuffled_vec_labels)
 
         # Free memory.
-        cur_data.free_device_memory()
-        cur_labels.free_device_memory()
-        del cur_data, cur_labels
+        self.cur_data.free_device_memory()
+        self.cur_vec_labels.free_device_memory()
+        del self.cur_data, self.cur_vec_labels
 
         self.cu_data.free_device_memory()
-        self.cu_labels.free_device_memory()
-        del self.cu_data, self.cu_labels
+        self.cu_vec_labels.free_device_memory()
+        del self.cu_data, self.cu_vec_labels
 
-        cu_no_shuffle_data.free_device_memory()
-        cu_no_shuffle_labels.free_device_memory()
-        del cu_no_shuffle_data, cu_no_shuffle_labels
-
-        del self.data, self.labels
+        del self.shuffled_data, self.shuffled_vec_labels
+        del self.shuffled_vec_labels
 
         duration = (time.time() - start) / 60
         print "Training takes {0} minutes.".format(duration)
@@ -126,16 +121,21 @@ class NeuralNet(object):
         return self.losses
 
     def predict(self, data):
-        cu_data = cm.CUDAMatrix(data)
+        predicted = np.empty((0,))
 
-        # Predict.
-        with self._predict_forward(cu_data) as cu_predicted:
-            predicted = devectorize_labels(cu_predicted.asarray())
+        cu_data = cm.CUDAMatrix(data)
+        cur_data = cm.empty((self.batch_size, data.shape[1]))
+
+        for data_i in xrange(0, len(data), self.batch_size):
+            cu_data.get_row_slice(data_i, data_i+self.batch_size, cur_data)
+
+            predicted = \
+                np.append(predicted, devectorize_labels(self._forward_p(cur_data, True).asarray()))
 
         # Free memory.
         cu_data.free_device_memory()
-        del cu_data
-
+        cur_data.free_device_memory()
+        del cu_data, cur_data
         return predicted
 
     def score(self, data, labels):
@@ -143,31 +143,29 @@ class NeuralNet(object):
         correct = predictions == labels
         return np.count_nonzero(correct) / float(len(labels))
 
-    @contextmanager
-    def _predict_forward(self, cu_data):
-        # predict
-        cur_z = cu_data
-        for l in self.layers:
-            cur_z = l.predict(cur_z)
+    def _compute_training_score_n_loss(self):
+        predictions = np.empty((0,))
+        loss = 0.0
+        for data_i in xrange(0, len(self.shuffled_data), self.batch_size):
+            self.cu_data.get_row_slice(data_i, data_i+self.batch_size, self.cur_data)
+            self.cu_vec_labels.get_row_slice(data_i, data_i+self.batch_size, self.cur_vec_labels)
 
-        yield cur_z
 
-        # free memory
-        for l in self.layers:
-            l.prediction_clean()
+            predictions = \
+                np.append(predictions,
+                          devectorize_labels(self._forward_p(self.cur_data, True).asarray()))
+            loss += self.output_layer.compute_loss(self.cur_vec_labels) * float(self.batch_size)
 
-    def _training_score_n_loss(self, cu_data, cu_labels, labels):
-        with self._predict_forward(cu_data) as cu_predicted:
-            loss = self.output_layer.compute_loss(cu_labels)
-            predictions = devectorize_labels(cu_predicted.asarray())
-            correct = predictions == labels
-            score = np.count_nonzero(correct) / float(len(labels))
+        correct = predictions == self.shuffled_labels
+        score = np.count_nonzero(correct) / float(len(predictions))
+        loss /= len(self.shuffled_data)
         return score, loss
 
-    def _forward_p(self, data):
+    def _forward_p(self, data, predict=False):
         cur_z = data
         for l in self.layers:
-            cur_z = l.forward_p(cur_z)
+            cur_z = l.forward_p(cur_z, predict)
+        return cur_z
 
     def _backward_p(self, y):
         delta_or_y = y

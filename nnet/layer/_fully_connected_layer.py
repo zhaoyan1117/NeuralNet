@@ -72,12 +72,12 @@ class FullyConnectedLayer(LayerBase):
     def _init_dropout_mask(self, batch_size):
         self.dropout_mask = cm.empty((batch_size, self.size))
 
-    def forward_p(self, z):
+    def forward_p(self, z, predict=False):
         self.z = z
         self.activation_func.apply(self.z)
 
         # Dropout regularization.
-        if self.use_dropout:
+        if self.use_dropout and (not predict):
             self.dropout_mask\
                 .fill_with_rand()\
                 .less_than(self.dropout_p)\
@@ -114,15 +114,3 @@ class FullyConnectedLayer(LayerBase):
         self.weights.subtract_mult(self.weights_grad, lr)
         if self.use_bias:
             self.biases.subtract_mult(self.biases_grad, lr)
-
-    def predict(self, z):
-        self.activation_func.apply(z)
-        self.predict_z = cm.dot(z, self.weights)
-
-        if self.use_bias:
-            self.biases.mult(
-                self.activation_func.apply_scalar(1),
-                self.active_biases
-            )
-            self.predict_z.add_row_vec(self.active_biases)
-        return self.predict_z

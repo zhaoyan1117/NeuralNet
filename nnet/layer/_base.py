@@ -14,7 +14,7 @@ class LayerBase(object):
         pass
 
     @abstractmethod
-    def forward_p(self, z):
+    def forward_p(self, z, predict=False):
         pass
 
     @abstractmethod
@@ -24,12 +24,3 @@ class LayerBase(object):
     @abstractmethod
     def update(self, epoch):
         pass
-
-    @abstractmethod
-    def predict(self, z):
-        pass
-
-    def prediction_clean(self):
-        if hasattr(self, 'predict_z'):
-            self.predict_z.free_device_memory()
-            del self.predict_z
