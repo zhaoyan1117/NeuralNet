@@ -22,6 +22,9 @@ class FullyConnectedLayer(LayerBase):
         self.use_dropout = kwargs.get('use_dropout', False)
         if self.use_dropout:
             self.dropout_p = kwargs.get('dropout_p', 0.5)
+        self.use_max_norm = kwargs.get('use_max_norm', False)
+        if self.use_max_norm:
+            self.max_norm_c = kwargs.get('max_norm_c', 4.0)
 
     def set_next_layer_size(self, next_size):
         self.next_size = next_size
@@ -40,6 +43,10 @@ class FullyConnectedLayer(LayerBase):
         # Dropout mask.
         if self.use_dropout:
             self._init_dropout_mask(batch_size)
+
+        # Max norm params.
+        if self.use_max_norm:
+            self._init_max_norm_params()
 
     def _init_weights(self):
         var = math.sqrt(2.0/self.size) if self.sigma == 'c' else self.sigma
@@ -71,6 +78,11 @@ class FullyConnectedLayer(LayerBase):
 
     def _init_dropout_mask(self, batch_size):
         self.dropout_mask = cm.empty((batch_size, self.size))
+
+    def _init_max_norm_params(self):
+        self.weights_square = cm.empty(self.weights.shape)
+        self.weights_factor = cm.empty((1, self.next_size))
+        self.weights_factor_mask = cm.empty((1, self.next_size))
 
     def forward_p(self, z, predict=False):
         self.z = z
@@ -114,3 +126,24 @@ class FullyConnectedLayer(LayerBase):
         self.weights.subtract_mult(self.weights_grad, lr)
         if self.use_bias:
             self.biases.subtract_mult(self.biases_grad, lr)
+
+        # Max-norm regularization.
+        if self.use_max_norm:
+            cm.pow(self.weights, 2, self.weights_square)
+            self.weights_square.sum(0, self.weights_factor)
+            cm.sqrt(self.weights_factor, self.weights_factor)
+
+            # Avoid zero weight mags.
+            self.weights_factor.add(1e-8)
+            self.weights_factor.reciprocal().mult(self.max_norm_c)
+
+            # Filter not factor greater than 1.0
+            self.weights_factor.less_than(1.0, self.weights_factor_mask)
+            self.weights_factor.mult(self.weights_factor_mask)
+
+            # Change 0.0 entry to 1.0.
+            self.weights_factor_mask.less_than(1.0)
+            self.weights_factor.add(self.weights_factor_mask)
+
+            # Down scale over sized weights.
+            self.weights.mult_by_row(self.weights_factor)
