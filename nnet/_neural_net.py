@@ -111,7 +111,7 @@ class NeuralNet(object):
         self.cu_vec_labels.free_device_memory()
         del self.cu_data, self.cu_vec_labels
 
-        del self.shuffled_data, self.shuffled_vec_labels
+        del self.shuffled_data, self.shuffled_labels
         del self.shuffled_vec_labels
 
         duration = (time.time() - start) / 60
