@@ -18,7 +18,10 @@ class FullyConnectedLayer(LayerBase):
         self.use_bias = use_bias
         self.sigma = sigma
 
-        # Regularization techniques.
+        self.use_momentum = kwargs.get('use_momentum', False)
+        if self.use_momentum:
+            self.momentum = kwargs.get('momentum', 0.9)
+
         self.use_dropout = kwargs.get('use_dropout', False)
         if self.use_dropout:
             self.dropout_p = kwargs.get('dropout_p', 0.5)
@@ -59,6 +62,10 @@ class FullyConnectedLayer(LayerBase):
 
         self.weights_grad = cm.empty(self.weights.shape)
 
+        if self.use_momentum:
+            self.weights_update = \
+                cm.CUDAMatrix(np.zeros(self.weights_grad.shape))
+
     def _init_bias(self):
         assert self.use_bias
         self.biases = cm.CUDAMatrix(
@@ -66,6 +73,10 @@ class FullyConnectedLayer(LayerBase):
         )
         self.active_biases = cm.empty(self.biases.shape)
         self.biases_grad = cm.empty(self.biases.shape)
+
+        if self.use_momentum:
+            self.biases_update = \
+                cm.CUDAMatrix(np.zeros(self.biases_grad.shape))
 
     def _init_params(self, batch_size):
         self.next_z = cm.empty((batch_size, self.next_size))
@@ -123,9 +134,19 @@ class FullyConnectedLayer(LayerBase):
         return self.my_delta
 
     def update(self, lr):
-        self.weights.subtract_mult(self.weights_grad, lr)
-        if self.use_bias:
-            self.biases.subtract_mult(self.biases_grad, lr)
+        if self.use_momentum:
+            self.weights_update.mult(self.momentum)
+            self.weights_update.subtract_mult(self.weights_grad, lr)
+            self.weights.add(self.weights_update)
+
+            if self.use_bias:
+                self.biases_update.mult(self.momentum)
+                self.biases_update.subtract_mult(self.biases_grad, lr)
+                self.biases.add(self.biases_update)
+        else:
+            self.weights.subtract_mult(self.weights_grad, lr)
+            if self.use_bias:
+                self.biases.subtract_mult(self.biases_grad, lr)
 
         # Max-norm regularization.
         if self.use_max_norm:
