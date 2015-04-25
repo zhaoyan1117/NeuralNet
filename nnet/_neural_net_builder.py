@@ -1,12 +1,14 @@
 from __future__ import absolute_import
 
 import cPickle as pickle
+
 import nnet.activation_func as af
 import nnet.layer as layer
 import nnet.learning_rate_func as lrf
 import nnet.stopping_criteria as sc
 from nnet._neural_net import NeuralNet
 from nnet._neural_net_exception import NeuralNetException
+
 
 class NeuralNetBuilder(object):
 
