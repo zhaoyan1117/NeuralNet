@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import cPickle as pickle
 import nnet.activation_func as af
 import nnet.layer as layer
 import nnet.learning_rate_func as lrf
@@ -19,6 +20,13 @@ class NeuralNetBuilder(object):
         self.lr_func = None
         self.stopping_c = sc.OrConditions()
         self.status_period = 10000
+
+    def load(self, file_name):
+        with open(file_name, 'r') as fd:
+            net = pickle.load(fd)
+            for l in net.layers:
+                l.load_params()
+            return net
 
     def build(self):
         if not self.layers:

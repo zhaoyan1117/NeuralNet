@@ -1,6 +1,7 @@
 from __future__ import absolute_import
 
 import time
+import cPickle as pickle
 
 import numpy as np
 import cudamat as cm
@@ -179,3 +180,10 @@ class NeuralNet(object):
     @property
     def output_layer(self):
         return self.layers[-1]
+
+    def dump(self, file_name):
+        for l in self.layers:
+            l.dump_params()
+
+        with open(file_name, 'w') as fd:
+            pickle.dump(self, fd)

@@ -88,9 +88,11 @@ class FullyConnectedLayer(LayerBase):
             self.my_delta = None
 
     def _init_dropout_mask(self, batch_size):
+        assert self.use_dropout
         self.dropout_mask = cm.empty((batch_size, self.size))
 
     def _init_max_norm_params(self):
+        assert self.use_max_norm
         self.weights_square = cm.empty(self.weights.shape)
         self.weights_factor = cm.empty((1, self.next_size))
         self.weights_factor_mask = cm.empty((1, self.next_size))
@@ -168,3 +170,69 @@ class FullyConnectedLayer(LayerBase):
 
             # Down scale over sized weights.
             self.weights.mult_by_row(self.weights_factor)
+
+    def dump_params(self):
+        del self.z
+
+        # Weights.
+        self._dump_np('weights')
+        self._dump_np('weights_transpose')
+        self._dump_np('weights_grad')
+        if self.use_momentum:
+            self._dump_np('weights_update')
+
+        # Biases.
+        if self.use_bias:
+            self._dump_np('biases')
+            self._dump_np('active_biases')
+            self._dump_np('biases_grad')
+            if self.use_momentum:
+                self._dump_np('biases_update')
+
+        # Params.
+        self._dump_np('next_z')
+        self._dump_np('a_transpose')
+        if self.level != 1:
+            self._dump_np('my_delta')
+
+        # Dropout mask.
+        if self.use_dropout:
+            self._dump_np('dropout_mask')
+
+        # Max-norm.
+        if self.use_max_norm:
+            self._dump_np('weights_square')
+            self._dump_np('weights_factor')
+            self._dump_np('weights_factor_mask')
+
+    def load_params(self):
+        # Weights.
+        self._load_np('weights')
+        self._load_np('weights_transpose')
+        self._load_np('weights_grad')
+        if self.use_momentum:
+            self._load_np('weights_update')
+
+        # Biases.
+        if self.use_bias:
+            self._load_np('biases')
+            self._load_np('active_biases')
+            self._load_np('biases_grad')
+            if self.use_momentum:
+                self._load_np('biases_update')
+
+        # Params.
+        self._load_np('next_z')
+        self._load_np('a_transpose')
+        if self.level != 1:
+            self._load_np('my_delta')
+
+        # Dropout mask.
+        if self.use_dropout:
+            self._load_np('dropout_mask')
+
+        # Max-norm.
+        if self.use_max_norm:
+            self._load_np('weights_square')
+            self._load_np('weights_factor')
+            self._load_np('weights_factor_mask')

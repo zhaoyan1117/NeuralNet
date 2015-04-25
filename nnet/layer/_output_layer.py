@@ -97,3 +97,10 @@ class OutputLayer(LayerBase):
                   + (1.0 - cpu_y) * np.log(1.0 - cpu_y_hat)
         return -np.sum(entropy) \
                / float(self.batch_size)
+
+    def dump_params(self):
+        del self.z
+        self._dump_np('my_delta')
+
+    def load_params(self):
+        self._load_np('my_delta')
