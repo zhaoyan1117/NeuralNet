@@ -57,9 +57,6 @@ class FullyConnectedLayer(LayerBase):
             var * np.random.randn(self.size, self.next_size)
         )
 
-        self.weights_transpose = \
-            cm.empty((self.weights.shape[1], self.weights.shape[0]))
-
         self.weights_grad = cm.empty(self.weights.shape)
 
         if self.use_momentum:
@@ -80,7 +77,6 @@ class FullyConnectedLayer(LayerBase):
 
     def _init_params(self, batch_size):
         self.next_z = cm.empty((batch_size, self.next_size))
-        self.a_transpose = cm.empty((self.size, batch_size))
 
         if self.level != 1:
             self.my_delta = cm.empty((batch_size, self.size))
@@ -121,16 +117,14 @@ class FullyConnectedLayer(LayerBase):
 
     def backward_p(self, next_delta):
         # Compute weights grad.
-        self.z.transpose(self.a_transpose)
-        cm.dot(self.a_transpose, next_delta, self.weights_grad)
+        cm.dot(self.z.T, next_delta, self.weights_grad)
 
         # Compute biases grad.
         if self.use_bias:
             next_delta.sum(0, self.biases_grad)
 
         if self.level != 1:
-            self.weights.transpose(self.weights_transpose)
-            cm.dot(next_delta, self.weights_transpose, self.my_delta)
+            cm.dot(next_delta, self.weights.T, self.my_delta)
             self.activation_func.mult_with_derivative(self.my_delta, self.z)
 
         return self.my_delta
@@ -176,7 +170,6 @@ class FullyConnectedLayer(LayerBase):
 
         # Weights.
         self._dump_np('weights')
-        self._dump_np('weights_transpose')
         self._dump_np('weights_grad')
         if self.use_momentum:
             self._dump_np('weights_update')
@@ -191,7 +184,6 @@ class FullyConnectedLayer(LayerBase):
 
         # Params.
         self._dump_np('next_z')
-        self._dump_np('a_transpose')
         if self.level != 1:
             self._dump_np('my_delta')
 
@@ -208,7 +200,6 @@ class FullyConnectedLayer(LayerBase):
     def load_params(self):
         # Weights.
         self._load_np('weights')
-        self._load_np('weights_transpose')
         self._load_np('weights_grad')
         if self.use_momentum:
             self._load_np('weights_update')
@@ -223,7 +214,6 @@ class FullyConnectedLayer(LayerBase):
 
         # Params.
         self._load_np('next_z')
-        self._load_np('a_transpose')
         if self.level != 1:
             self._load_np('my_delta')
 
