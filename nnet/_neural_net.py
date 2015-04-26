@@ -60,7 +60,7 @@ class NeuralNet(object):
 
             # Gradient descent update.
             self._update(
-                self.lr_func.apply(self.cur_iteration)
+                self.lr_func.apply(self.cur_iteration, self)
             )
 
             # Do periodic job.

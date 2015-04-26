@@ -105,6 +105,10 @@ class NeuralNetBuilder(object):
         self.lr_func = lrf.StepSizeLR(eta_0, gamma, step_size)
         return self
 
+    def add_dynamic_step_size_lr_func(self, eta_0, gamma, k, threshold_0):
+        self.lr_func = lrf.DynamicStepSizeLR(eta_0, gamma, k, threshold_0)
+        return self
+
     def add_inv_prop_lr_func(self, eta_0, lbd):
         self.lr_func = lrf.InvPropLR(eta_0, lbd)
         return self

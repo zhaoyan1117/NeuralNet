@@ -9,6 +9,6 @@ class StepSizeLR(LearningRateFuncBase):
         self.gamma = gamma
         self.step_size = step_size
 
-    def apply(self, t):
+    def apply(self, t, net):
         return self.eta_0 \
                * pow(self.gamma, t // self.step_size)

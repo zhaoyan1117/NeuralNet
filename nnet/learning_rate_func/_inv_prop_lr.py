@@ -8,6 +8,6 @@ class InvPropLR(LearningRateFuncBase):
         self.eta_0 = eta_0
         self.lbd = lbd
 
-    def apply(self, t):
+    def apply(self, t, net):
         return self.eta_0 \
                / (1.0 + self.eta_0 * self.lbd * t)

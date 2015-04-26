@@ -6,5 +6,5 @@ class LearningRateFuncBase(object):
     __metaclass__ = ABCMeta
 
     @abstractmethod
-    def apply(self, t):
+    def apply(self, t, net):
         pass

@@ -11,7 +11,6 @@ class MinImproveScore(StoppingCriteriaBase):
         self.k = k
         self.threshold = threshold
         self.last_update = None
-        self.counter = 0
 
     def stop(self, net):
         latest_update = len(net.losses)
