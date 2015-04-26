@@ -181,7 +181,11 @@ class NeuralNet(object):
     def output_layer(self):
         return self.layers[-1]
 
-    def dump(self, file_name):
+    def dump(self, file_name, prep=None):
+        # Some data preprocessor might
+        # keep some state for this net specifically.
+        self.prep = prep
+
         for l in self.layers:
             l.dump_params()
 
