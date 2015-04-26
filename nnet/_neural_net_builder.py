@@ -1,6 +1,9 @@
 from __future__ import absolute_import
 
 import cPickle as pickle
+import time
+
+import cudamat as cm
 
 import nnet.activation_func as af
 import nnet.layer as layer
@@ -24,6 +27,8 @@ class NeuralNetBuilder(object):
         self.status_period = 10000
 
     def load(self, file_name):
+        cm.CUDAMatrix.init_random(int(time.time()))
+
         with open(file_name, 'r') as fd:
             net = pickle.load(fd)
             for l in net.layers:
