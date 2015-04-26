@@ -6,7 +6,7 @@ import numpy as np
 import cudamat as cm
 
 from ._base import LayerBase
-
+from .._neural_net_exception import NeuralNetException
 
 class FullyConnectedLayer(LayerBase):
 
@@ -21,6 +21,12 @@ class FullyConnectedLayer(LayerBase):
         self.use_momentum = kwargs.get('use_momentum', False)
         if self.use_momentum:
             self.momentum = kwargs.get('momentum', 0.9)
+        self.use_rmsprop = kwargs.get('use_rmsprop', False)
+        if self.use_rmsprop:
+            self.rmsprop_dr = kwargs.get('rmsprop_dr', 0.99)
+
+        if self.use_momentum and self.use_rmsprop:
+            raise NeuralNetException('Cannot use momentum and rmsprop together.')
 
         self.use_dropout = kwargs.get('use_dropout', False)
         if self.use_dropout:
@@ -63,6 +69,12 @@ class FullyConnectedLayer(LayerBase):
             self.weights_update = \
                 cm.CUDAMatrix(np.zeros(self.weights_grad.shape))
 
+        if self.use_rmsprop:
+            self.weights_rmsprop_cache = \
+                cm.CUDAMatrix(np.zeros(self.weights_grad.shape))
+            self.weights_grad_square = \
+                cm.CUDAMatrix(np.zeros(self.weights_grad.shape))
+
     def _init_bias(self):
         assert self.use_bias
         self.biases = cm.CUDAMatrix(
@@ -73,6 +85,12 @@ class FullyConnectedLayer(LayerBase):
 
         if self.use_momentum:
             self.biases_update = \
+                cm.CUDAMatrix(np.zeros(self.biases_grad.shape))
+
+        if self.use_rmsprop:
+            self.biases_rmsprop_cache = \
+                cm.CUDAMatrix(np.zeros(self.biases_grad.shape))
+            self.biases_grad_square = \
                 cm.CUDAMatrix(np.zeros(self.biases_grad.shape))
 
     def _init_params(self, batch_size):
@@ -139,6 +157,24 @@ class FullyConnectedLayer(LayerBase):
                 self.biases_update.mult(self.momentum)
                 self.biases_update.subtract_mult(self.biases_grad, lr)
                 self.biases.add(self.biases_update)
+        elif self.use_rmsprop:
+            self.weights_rmsprop_cache.mult(self.rmsprop_dr)
+            cm.pow(self.weights_grad, self.weights_grad_square)
+            self.weights_grad_square.mult(1.0 - self.rmsprop_dr)
+            self.weights_rmsprop_cache.add(self.weights_grad_square)
+            self.weights_rmsprop_cache.add(1e-8)
+            cm.sqrt(self.weights_rmsprop_cache)
+            self.weights_grad.mult(lr).divide(self.weights_rmsprop_cache)
+            self.weights.subtract(self.weights_grad)
+
+            self.biases_rmsprop_cache.mult(self.rmsprop_dr)
+            cm.pow(self.biases_grad, self.biases_grad_square)
+            self.biases_grad_square.mult(1.0 - self.rmsprop_dr)
+            self.biases_rmsprop_cache.add(self.biases_grad_square)
+            self.biases_rmsprop_cache.add(1e-8)
+            cm.sqrt(self.biases_rmsprop_cache)
+            self.biases_grad.mult(lr).divide(self.biases_rmsprop_cache)
+            self.biases.subtract(self.biases_grad)
         else:
             self.weights.subtract_mult(self.weights_grad, lr)
             if self.use_bias:
@@ -173,6 +209,9 @@ class FullyConnectedLayer(LayerBase):
         self._dump_np('weights_grad')
         if self.use_momentum:
             self._dump_np('weights_update')
+        if self.use_rmsprop:
+            self._dump_np('weights_grad_square')
+            self._dump_np('weights_rmsprop_cache')
 
         # Biases.
         if self.use_bias:
@@ -181,6 +220,9 @@ class FullyConnectedLayer(LayerBase):
             self._dump_np('biases_grad')
             if self.use_momentum:
                 self._dump_np('biases_update')
+            if self.use_rmsprop:
+                self._dump_np('biases_grad_square')
+                self._dump_np('biases_rmsprop_cache')
 
         # Params.
         self._dump_np('next_z')
@@ -203,6 +245,10 @@ class FullyConnectedLayer(LayerBase):
         self._load_np('weights_grad')
         if self.use_momentum:
             self._load_np('weights_update')
+        # Backward compatibility.
+        if hasattr(self, 'use_rmsprop') and self.use_rmsprop:
+            self._load_np('weights_grad_square')
+            self._load_np('weights_rmsprop_cache')
 
         # Biases.
         if self.use_bias:
@@ -211,6 +257,10 @@ class FullyConnectedLayer(LayerBase):
             self._load_np('biases_grad')
             if self.use_momentum:
                 self._load_np('biases_update')
+            # Backward compatibility.
+            if hasattr(self, 'use_rmsprop') and self.use_rmsprop:
+                self._load_np('biases_grad_square')
+                self._load_np('biases_rmsprop_cache')
 
         # Params.
         self._load_np('next_z')
