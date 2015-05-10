@@ -43,83 +43,86 @@ class NeuralNet(object):
         self.cur_epoch = 0
         self.cur_iteration = 0
 
-        while not self.stopping_c.stop(self):
-            # Slice data and labels for this epoch.
-            self.cu_data.get_row_slice(data_i, data_i+self.batch_size, self.cur_data)
-            self.cu_vec_labels.get_row_slice(data_i, data_i+self.batch_size, self.cur_vec_labels)
+        try:
+            while not self.stopping_c.stop(self):
+                # Slice data and labels for this epoch.
+                self.cu_data.get_row_slice(data_i, data_i+self.batch_size, self.cur_data)
+                self.cu_vec_labels.get_row_slice(data_i, data_i+self.batch_size, self.cur_vec_labels)
 
-            # Forward propagation.
-            self._forward_p(
-                self.cur_data
-            )
+                # Forward propagation.
+                self._forward_p(
+                    self.cur_data
+                )
 
-            # Backward propagation.
-            self._backward_p(
-                self.cur_vec_labels
-            )
+                # Backward propagation.
+                self._backward_p(
+                    self.cur_vec_labels
+                )
 
-            # Gradient descent update.
-            self._update(
-                self.lr_func.apply(self.cur_iteration, self)
-            )
+                # Gradient descent update.
+                self._update(
+                    self.lr_func.apply(self.cur_iteration, self)
+                )
 
-            # Do periodic job.
-            if not self.cur_iteration % self.status_period:
-                time_elapsed = time.time() - start
+                # Do periodic job.
+                if not self.cur_iteration % self.status_period:
+                    time_elapsed = time.time() - start
 
-                score, loss = self._compute_training_score_n_loss()
+                    score, loss = self._compute_training_score_n_loss()
 
-                print "Epoch: {:3d} | " \
-                      "Iteration: {:3d} x {status_period} | " \
-                      "Score: {:13.12f} | " \
-                      "Loss: {:13.10f} | " \
-                      "Time elapsed: {:3.2f} minutes" \
-                    .format(self.cur_epoch,
-                            self.cur_iteration / self.status_period,
-                            score, loss, time_elapsed/60,
-                            status_period=self.status_period)
+                    print "Epoch: {:3d} | " \
+                          "Iteration: {:3d} x {status_period} | " \
+                          "Score: {:13.12f} | " \
+                          "Loss: {:13.10f} | " \
+                          "Time elapsed: {:3.2f} minutes" \
+                        .format(self.cur_epoch,
+                                self.cur_iteration / self.status_period,
+                                score, loss, time_elapsed/60,
+                                status_period=self.status_period)
 
-                self.losses = np.append(self.losses,
-                                        [[self.cur_epoch, self.cur_iteration, score, loss, time_elapsed]],
-                                        axis=0)
+                    self.losses = np.append(self.losses,
+                                            [[self.cur_epoch, self.cur_iteration, score, loss, time_elapsed]],
+                                            axis=0)
 
-            # Update cur_iteration and data index.
-            data_i += self.batch_size
-            self.cur_iteration += 1
+                # Update cur_iteration and data index.
+                data_i += self.batch_size
+                self.cur_iteration += 1
 
-            # Finished one epoch.
-            if data_i + self.batch_size > len(self.shuffled_data):
-                data_i = 0
-                self.cur_epoch += 1
+                # Finished one epoch.
+                if data_i + self.batch_size > len(self.shuffled_data):
+                    data_i = 0
+                    self.cur_epoch += 1
 
-                # Re-shuffle data.
-                self.cu_data.free_device_memory()
-                self.cu_vec_labels.free_device_memory()
-                del self.cu_data, self.cu_vec_labels
-                self.shuffled_data, self.shuffled_labels = \
-                    shuffle_data_labels(data, labels)
-                self.shuffled_vec_labels = \
-                    vectorize_labels(self.shuffled_labels, len(self.klasses))
-                self.cu_data, self.cu_vec_labels = \
-                    cm.CUDAMatrix(self.shuffled_data), cm.CUDAMatrix(self.shuffled_vec_labels)
+                    # Re-shuffle data.
+                    self.cu_data.free_device_memory()
+                    self.cu_vec_labels.free_device_memory()
+                    del self.cu_data, self.cu_vec_labels
+                    self.shuffled_data, self.shuffled_labels = \
+                        shuffle_data_labels(data, labels)
+                    self.shuffled_vec_labels = \
+                        vectorize_labels(self.shuffled_labels, len(self.klasses))
+                    self.cu_data, self.cu_vec_labels = \
+                        cm.CUDAMatrix(self.shuffled_data), cm.CUDAMatrix(self.shuffled_vec_labels)
+        except KeyboardInterrupt:
+            print "Stop at epoch: {0}, iteration: {1}".format(self.cur_epoch, self.cur_iteration)
+        finally:
+            # Free memory.
+            self.cur_data.free_device_memory()
+            self.cur_vec_labels.free_device_memory()
+            del self.cur_data, self.cur_vec_labels
 
-        # Free memory.
-        self.cur_data.free_device_memory()
-        self.cur_vec_labels.free_device_memory()
-        del self.cur_data, self.cur_vec_labels
+            self.cu_data.free_device_memory()
+            self.cu_vec_labels.free_device_memory()
+            del self.cu_data, self.cu_vec_labels
 
-        self.cu_data.free_device_memory()
-        self.cu_vec_labels.free_device_memory()
-        del self.cu_data, self.cu_vec_labels
+            del self.shuffled_data, self.shuffled_labels
+            del self.shuffled_vec_labels
 
-        del self.shuffled_data, self.shuffled_labels
-        del self.shuffled_vec_labels
+            duration = (time.time() - start) / 60
+            print "Training takes {0} minutes.".format(duration)
 
-        duration = (time.time() - start) / 60
-        print "Training takes {0} minutes.".format(duration)
-
-        # Return losses.
-        return self.losses
+            # Return losses.
+            return self.losses
 
     def predict(self, data):
         vec_predictions = np.empty((0, self.output_layer.size))
