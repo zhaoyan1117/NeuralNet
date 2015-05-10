@@ -14,7 +14,6 @@ class NeuralNet(object):
     def __init__(self, batch_size, lr_func, stopping_c, layers,
                  status_period=10000, **kwargs):
         cm.CUDAMatrix.init_random(int(time.time()))
-        # TODO: Currently only support batch size divide data size.
         self.batch_size = batch_size
         self.lr_func = lr_func
         self.stopping_c = stopping_c
@@ -27,6 +26,7 @@ class NeuralNet(object):
         self.losses = np.empty((0, 5))
 
         self.klasses = np.unique(labels)
+        assert len(self.klasses) == self.output_layer.size
 
         # Shuffle input data and labels.
         self.shuffled_data, self.shuffled_labels = \
@@ -122,44 +122,71 @@ class NeuralNet(object):
         return self.losses
 
     def predict(self, data):
-        predicted = np.empty((0,))
+        vec_predictions = np.empty((0, self.output_layer.size))
 
         cu_data = cm.CUDAMatrix(data)
         cur_data = cm.empty((self.batch_size, data.shape[1]))
+        cur_single_data = cm.empty((1, data.shape[1]))
 
-        for data_i in xrange(0, len(data), self.batch_size):
+        for data_i in xrange(0, len(data)-self.batch_size, self.batch_size):
             cu_data.get_row_slice(data_i, data_i+self.batch_size, cur_data)
 
-            predicted = \
-                np.append(predicted, devectorize_labels(self._forward_p(cur_data, True).asarray()))
+            vec_predictions = \
+                np.append(vec_predictions, self._forward_p(cur_data, True).asarray(), axis=0)
+
+        for data_i in xrange((len(data)//self.batch_size)*self.batch_size, len(data)):
+            cu_data.get_row_slice(data_i, data_i+1, cur_single_data)
+
+            vec_predictions = \
+                np.append(vec_predictions, self._forward_p_single(cur_single_data).asarray(), axis=0)
 
         # Free memory.
         cu_data.free_device_memory()
         cur_data.free_device_memory()
-        del cu_data, cur_data
-        return predicted
+        cur_single_data.free_device_memory()
+        del cu_data, cur_data, cur_single_data
+        return vec_predictions, devectorize_labels(vec_predictions)
 
     def score(self, data, labels):
-        predictions = self.predict(data)
+        vec_predictions, predictions = self.predict(data)
         correct = predictions == labels
-        return np.count_nonzero(correct) / float(len(labels))
+        return (
+            np.count_nonzero(correct) / float(len(labels)),
+            vec_predictions,
+            predictions
+        )
 
     def _compute_training_score_n_loss(self):
         predictions = np.empty((0,))
         loss = 0.0
-        for data_i in xrange(0, len(self.shuffled_data), self.batch_size):
+        for data_i in xrange(0, len(self.shuffled_data)-self.batch_size, self.batch_size):
             self.cu_data.get_row_slice(data_i, data_i+self.batch_size, self.cur_data)
             self.cu_vec_labels.get_row_slice(data_i, data_i+self.batch_size, self.cur_vec_labels)
-
 
             predictions = \
                 np.append(predictions,
                           devectorize_labels(self._forward_p(self.cur_data, True).asarray()))
             loss += self.output_layer.compute_loss(self.cur_vec_labels) * float(self.batch_size)
 
+        cur_single_data = cm.empty((1, self.cu_data.shape[1]))
+        cur_single_vec_labels = cm.empty((1, self.cu_vec_labels.shape[1]))
+        for data_i in xrange((len(self.shuffled_data)//self.batch_size)*self.batch_size, len(self.shuffled_data)):
+            self.cu_data.get_row_slice(data_i, data_i+1, cur_single_data)
+            self.cu_vec_labels.get_row_slice(data_i, data_i+1, cur_single_vec_labels)
+
+            predictions = \
+                np.append(predictions,
+                          devectorize_labels(self._forward_p_single(cur_single_data).asarray()))
+            loss += self.output_layer.compute_loss(cur_single_vec_labels)
+
         correct = predictions == self.shuffled_labels
         score = np.count_nonzero(correct) / float(len(predictions))
         loss /= len(self.shuffled_data)
+
+        cur_single_data.free_device_memory()
+        cur_single_vec_labels.free_device_memory()
+        del cur_single_data, cur_single_vec_labels
+
         return score, loss
 
     def _forward_p(self, data, predict=False):
@@ -167,6 +194,12 @@ class NeuralNet(object):
         for l in self.layers:
             cur_z = l.forward_p(cur_z, predict)
         return cur_z
+
+    def _forward_p_single(self, data):
+        cur_single_z = data
+        for l in self.layers:
+            cur_single_z = l.forward_p_single(cur_single_z)
+        return cur_single_z
 
     def _backward_p(self, y):
         delta_or_y = y

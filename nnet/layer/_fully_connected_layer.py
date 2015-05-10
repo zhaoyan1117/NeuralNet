@@ -95,6 +95,7 @@ class FullyConnectedLayer(LayerBase):
 
     def _init_params(self, batch_size):
         self.next_z = cm.empty((batch_size, self.next_size))
+        self.next_single_z = cm.empty((1, self.next_size))
 
         if self.level != 1:
             self.my_delta = cm.empty((batch_size, self.size))
@@ -132,6 +133,20 @@ class FullyConnectedLayer(LayerBase):
             )
             self.next_z.add_row_vec(self.active_biases)
         return self.next_z
+
+    def forward_p_single(self, single_z):
+        self.single_z = single_z
+        self.activation_func.apply(self.single_z)
+
+        cm.dot(self.single_z, self.weights, self.next_single_z)
+
+        if self.use_bias:
+            self.biases.mult(
+                self.activation_func.apply_scalar(1),
+                self.active_biases
+            )
+            self.next_single_z.add_row_vec(self.active_biases)
+        return self.next_single_z
 
     def backward_p(self, next_delta):
         # Compute weights grad.
@@ -226,6 +241,7 @@ class FullyConnectedLayer(LayerBase):
 
         # Params.
         self._dump_np('next_z')
+        self._dump_np('next_single_z')
         if self.level != 1:
             self._dump_np('my_delta')
 
@@ -264,6 +280,7 @@ class FullyConnectedLayer(LayerBase):
 
         # Params.
         self._load_np('next_z')
+        self._load_np('next_single_z')
         if self.level != 1:
             self._load_np('my_delta')
 

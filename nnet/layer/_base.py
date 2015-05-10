@@ -24,6 +24,10 @@ class LayerBase(object):
         pass
 
     @abstractmethod
+    def forward_p_single(self, single_z):
+        pass
+
+    @abstractmethod
     def update(self, epoch):
         pass
 

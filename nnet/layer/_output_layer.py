@@ -45,6 +45,9 @@ class OutputLayer(LayerBase):
         self.activation_func.apply(self.z)
         return self.z
 
+    def forward_p_single(self, single_z):
+        return self.forward_p(single_z, True)
+
     def backward_p(self, y):
         self.z.subtract(y, self.my_delta)
         self.my_delta.divide(float(self.my_delta.shape[0]))
