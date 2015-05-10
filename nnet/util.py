@@ -14,7 +14,7 @@ def devectorize_labels(vectorized):
     devectorized = np.zeros((len(vectorized),))
     for i in xrange(len(vectorized)):
         devectorized[i] = np.argmax(vectorized[i])
-    return devectorized
+    return devectorized.astype(np.int)
 
 def shuffle_data_labels(data, labels):
     assert len(data) == len(labels)
