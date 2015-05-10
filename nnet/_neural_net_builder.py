@@ -33,7 +33,10 @@ class NeuralNetBuilder(object):
             net = pickle.load(fd)
             for l in net.layers:
                 l.load_params()
-            return net
+
+        # Change to new learning func if given.
+        if self.lr_func:
+            net.lr_func = self.lr_func
 
     def build(self):
         if not self.layers:

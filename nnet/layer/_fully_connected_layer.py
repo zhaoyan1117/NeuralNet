@@ -218,6 +218,7 @@ class FullyConnectedLayer(LayerBase):
 
     def dump_params(self):
         del self.z
+        del self.single_z
 
         # Weights.
         self._dump_np('weights')
