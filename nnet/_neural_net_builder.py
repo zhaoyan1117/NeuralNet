@@ -37,6 +37,7 @@ class NeuralNetBuilder(object):
         # Change to new learning func if given.
         if self.lr_func:
             net.lr_func = self.lr_func
+        return net
 
     def build(self):
         if not self.layers:
